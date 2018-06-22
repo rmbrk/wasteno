@@ -1,0 +1,85 @@
+post /moderator/login
+- moderator
+  . notLoggedIn
+- common
+  . username password
+- moderator
+  > login
+
+post /moderator/create
+- moderator
+  . loggedIn
+- common
+  . username password name phone email
+- moderator
+  > create
+
+post /moderator/logout
+- moderator
+  . loggedIn
+  > logout
+
+post /moderator/verify/receiver
+- moderator
+  . loggedIn
+- common
+  . username
+- moderator
+  > verifyReceiver
+#
+#post /moderator/verify/provider
+#- moderator
+#  . loggedIn
+#- common
+#  . username
+#- moderator
+#  > verifyProvider
+#
+#post /moderator/verify/transporter
+#- moderator
+#  . loggedIn
+#- common
+#  . username
+#- moderator
+#  > verifyTransporter
+
+post /receiver/create
+- common
+  . name username password email phone
+- receiver
+  > create
+
+post /receiver/login
+- receiver
+  . notLoggedIn
+- common
+  . username password
+- receiver
+  > login
+
+post /receiver/logout
+- receiver
+  . loggedIn
+  > logout
+
+post /receiver/locations/
+- receiver
+  . loggedIn
+  > getLocations
+
+post /receiver/locations/add
+- receiver
+  . loggedIn locations
+  > addLocations
+#
+#post /provider/create
+#- common
+#  . name username password email phone
+#- provider
+#  > create
+#
+#post /transporter/create
+#- common
+#  . name username password email phone
+#- transporter
+#  > create
