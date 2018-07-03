@@ -17,8 +17,8 @@ services:
     image: mongo:3
     container_name: wasteno-mongodb
     environment:
-      - MONGODB_USER=${MONGO_USERNAME}
-      - MONGODB_PASS=${MONGO_PASSWORD}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
       - MONGO_DATA_DIR=/data/db
       - MONGO_LOG_DIR=/data/log
     volumes:
