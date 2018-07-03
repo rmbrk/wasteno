@@ -5,6 +5,10 @@ const bodyParser = require('body-parser');
 const routes = require('./routes');
 const validators = require('./validators');
 const controllers = require('./controllers');
+const errors = require('./errors.js');
+const {
+  sendError,
+}= require('./helper.js');
 
 const app = express();
 app.use(session({
@@ -13,7 +17,16 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
 }));
-app.use(bodyParser.json());
+app.use((req, res, next) => {
+  bodyParser.json()(req, res, (err) => {
+    if (err) {
+      return sendError(res, {
+        error: errors.bad_json, 
+      })
+    };
+    next();
+  })
+});
 
 const apiRouter = express.Router();
 for (const { method, path, consumers } of routes) {

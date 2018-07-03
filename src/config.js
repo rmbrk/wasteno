@@ -33,11 +33,28 @@ module.exports = {
     auth: {
       intervalMS: 12 * 60 * 60 * 1000, // 12 hrs
     },
+    pagination: {
+      items: {
+        maxAmount: 30,
+      },
+    },
   },
   moderator: {
 
   },
   receiver: {
 
+  },
+  sale: {
+    description: {
+      minSize: 0,
+      maxSize: 100,
+      charset: alphanumExtendedSpecialCharset,
+    },
+    pagination: {
+      items: {
+        maxAmount: 30,
+      },
+    },
   },
 };

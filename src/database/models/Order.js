@@ -1,10 +1,13 @@
-const { ref } = require('./helper.js');
+const { ref, price } = require('./helper.js');
 
 module.exports = {
   schema: {
     items: [{
-      food: ref('FoodItem'),
+      food: ref('Sale'),
+      price,
+      location: ref('ProviderLocation'),
       amount: Number,
+      maxExpiry: Date,
     }],
     price: Number,
     driver: ref('Transporter'),
@@ -15,7 +18,7 @@ module.exports = {
         at: Date,
         value: Boolean,
       },
-      payed: {
+      paid: {
         at: Date,
         value: Boolean,
       },

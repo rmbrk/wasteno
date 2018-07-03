@@ -1,3 +1,11 @@
+#
+# MODERATOR
+# RECEIVER
+# PROVIDER
+#
+#---
+#
+# MODERATOR
 post /moderator/login
 - moderator
   . notLoggedIn
@@ -19,6 +27,19 @@ post /moderator/logout
   . loggedIn
   > logout
 
+post /moderator/delete
+- moderator
+  . loggedIn
+  > delete
+
+post /moderator/delete/moderator
+- moderator
+  . loggedIn
+- common
+  . username
+- moderator
+  > deleteModerator
+
 post /moderator/verify/receiver
 - moderator
   . loggedIn
@@ -26,14 +47,22 @@ post /moderator/verify/receiver
   . username
 - moderator
   > verifyReceiver
-#
-#post /moderator/verify/provider
-#- moderator
-#  . loggedIn
-#- common
-#  . username
-#- moderator
-#  > verifyProvider
+
+post /moderator/delete/receiver
+- moderator
+  . loggedIn
+- common
+  . username
+- moderator
+  > deleteReceiver
+
+post /moderator/verify/provider
+- moderator
+  . loggedIn
+- common
+  . username
+- moderator
+  > verifyProvider
 #
 #post /moderator/verify/transporter
 #- moderator
@@ -43,6 +72,7 @@ post /moderator/verify/receiver
 #- moderator
 #  > verifyTransporter
 
+# RECEIVER
 post /receiver/create
 - common
   . name username password email phone
@@ -62,21 +92,64 @@ post /receiver/logout
   . loggedIn
   > logout
 
-post /receiver/locations/
+post /receiver/delete
 - receiver
   . loggedIn
+  > delete
+
+post /receiver/locations
+- common
+  . username
+- receiver
   > getLocations
 
 post /receiver/locations/add
 - receiver
   . loggedIn locations
   > addLocations
-#
-#post /provider/create
-#- common
-#  . name username password email phone
-#- provider
-#  > create
+
+# PROVIDER
+post /provider/login
+- provider
+  . notLoggedIn
+- common
+  . username password
+- provider
+  > login
+
+post /provider/create
+- common
+  . name username password email phone
+- provider
+  > create
+
+post /provider/delete
+- provider
+  . loggedIn
+  > delete
+
+post /provider/locations
+- common
+  . username
+- provider
+  > getLocations
+
+post /provider/locations/add
+- provider
+  . loggedIn locations
+  > addLocations
+
+post /provider/sales
+- common
+  . username
+- provider
+  . salePagination
+  > getSales
+
+post /provider/sales/add
+- provider
+  . loggedIn sales
+  > addSales
 #
 #post /transporter/create
 #- common

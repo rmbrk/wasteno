@@ -10,7 +10,11 @@ const {
   config,
 } = require('./../helper.js');
 
-const validateName = (name, { exists }) => {
+const validateName = (name, opts = {}) => {
+  const {
+    exists = false,
+  } = opts;
+
   if (!name) {
     return exists
       ? errors.common_name_missing
@@ -18,7 +22,7 @@ const validateName = (name, { exists }) => {
   }
 
   if (typeof name !== 'string') {
-    return error.common_name_out_of_charset;
+    return errors.common_name_out_of_charset;
   }
 
   const lengthError = check.len(name, {
@@ -42,9 +46,15 @@ const validateName = (name, { exists }) => {
   return false;
 };
 
-const validateUsername = (username) => {
+const validateUsername = (username, opts = {}) => {
+  const {
+    exists = true,
+  } = opts;
+
   if (!username) {
-    return errors.common_username_missing;
+    return exists
+      ? errors.common_username_missing
+      : false;
   }
 
   if (typeof username !== 'string') {
@@ -72,7 +82,11 @@ const validateUsername = (username) => {
   return false;
 };
 
-const validatePassword = (password) => {
+const validatePassword = (password, opts = {}) => {
+  const {
+    exists = true,
+  } = opts;
+
   if (!password) {
     return errors.common_password_missing;
   }
@@ -100,7 +114,11 @@ const validatePassword = (password) => {
   }
 };
 
-const validateEmail = (email, { exists = true }) => {
+const validateEmail = (email, opts = {}) => {
+  const {
+    exists = true,
+  } = opts;
+
   if (!email) {
     return exists
       ? errors.common_email_missing
@@ -116,7 +134,11 @@ const validateEmail = (email, { exists = true }) => {
   }
 };
 
-const validatePhone = (phone, { exists = true }) => {
+const validatePhone = (phone, opts = {}) => {
+  const {
+    exists = true,
+  } = opts;
+
   if (!phone) {
     return exists
       ? errors.common_phone_missing
@@ -132,18 +154,34 @@ const validatePhone = (phone, { exists = true }) => {
   }
 };
 
-const validateLon = (lon) => {
-  if (lon) {
-    if (typeof lon !== 'number' || lon < -180 || lon > 180) {
-      return errors.common_lon_invalid;
-    }
+const validateLon = (lon, opts = {}) => {
+  const {
+    exists = false,
+  } = opts;
+
+  if (!lon) {
+    return exists
+      ? errors.common_lon_missing
+      : false;
+  }
+
+  if (typeof lon !== 'number' || lon < -180 || lon > 180) {
+    return errors.common_lon_invalid;
   }
 };
-const validateLat = (lat) => {
-  if (lat) {
-    if (typeof lat !== 'number' || lat < -90 || lat > 90) {
-      return errors.common_lat_invalid;
-    }
+const validateLat = (lat, opts = {}) => {
+  const {
+    exists = false,
+  } = opts;
+
+  if (!lat) {
+    return exists
+      ? errors.common_lat_missing
+      : false;
+  }
+
+  if (typeof lat !== 'number' || lat < -90 || lat > 90) {
+    return errors.common_lat_invalid;
   }
 };
 
@@ -169,7 +207,7 @@ const validateLocation = (location) => {
 
   const addressError = validateAddress(address);
   if (addressError) {
-    return addressError; 
+    return addressError;
   }
 
   const nameError = validateName(name, { exists: true });
@@ -198,6 +236,33 @@ const validateLocation = (location) => {
   }
 };
 
+const validatePagination = (offset, amount, paginationConfig) => {
+  const {
+    maxAmount,
+  } = paginationConfig;
+
+  if (!offset) {
+    return errors.common_offset_missing; 
+  }
+
+  if (typeof offset !== 'number') {
+    return errors.common_offset_invalid; 
+  }
+
+  if (!amount) {
+    return errors.common_amount_missing; 
+  }
+
+  if (typeof amount !== 'number') {
+    return errors.common_amount_invalid; 
+  }
+
+  if (amount >= maxAmount) {
+    return errors.common_amount_invalid; 
+  }
+
+}
+
 module.exports = {
   validatorFns: {
     validateName,
@@ -209,6 +274,7 @@ module.exports = {
     validateLat,
     validateAddress,
     validateLocation,
+    validatePagination,
   },
   name(req, res, next) {
     handleRequestValidation(req, res, next, [{

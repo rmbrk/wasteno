@@ -1,4 +1,4 @@
-const { 
+const {
   Moderator,
   Receiver,
   Provider,
@@ -11,6 +11,7 @@ const {
   errors,
   config,
   sendError,
+  dbError,
 } = require('./../helper.js');
 
 module.exports = {
@@ -96,14 +97,68 @@ module.exports = {
 
     ok(res);
   },
+  delete(req, res) {
+    if (req.mod.isOrigin) {
+      sendError(res, {
+        error: errors.moderator_is_origin,
+      });
+      return;
+    }
+
+    req.session.modAuthed = false;
+
+    req.mod.remove((err) => {
+      if (err) {
+        dbError(res, err);
+        return;
+      }
+
+      ok(res);
+    });
+  },
+  deleteModerator(req, res) {
+    const {
+      username,
+    } = req.body;
+
+    Moderator.findOne({ username }, (err, mod) => {
+      if (err) {
+        dbError(res, err);
+        return;
+      }
+
+      if (!mod) {
+        sendError(res, {
+          error: errors.moderator_not_exists,
+        });
+        return;
+      }
+
+      if (mod.isOrigin) {
+        sendError(res, {
+          error: errors.moderator_is_origin,
+        });
+        return;
+      }
+
+      mod.remove((err) => {
+        if (err) {
+          dbError(res, err);
+          return;
+        }
+
+        ok(res);
+      });
+    });
+  },
   verifyReceiver(req, res) {
     const {
       username,
     } = req.body;
 
-    Receiver.find({ username }, (err, receiver) => {
+    Receiver.findOne({ username }, (err, receiver) => {
       if (!receiver) {
-        sendError({
+        sendError(res, {
           error: errors.receiver_not_exists,
         });
         return;
@@ -112,6 +167,52 @@ module.exports = {
       ok(res);
 
       receiver.verify({ modId: req.session.modId });
-    })
+    });
+  },
+  deleteReceiver(req, res) {
+    const {
+      username,
+    } = req.body;
+
+    Receiver.findOne({ username }, (err, rec) => {
+      if (err) {
+        dbError(res, err);
+        return;
+      }
+
+      if (!rec) {
+        sendError(res, {
+          error: errors.receiver_not_exists,
+        });
+        return;
+      }
+
+      rec.remove((err) => {
+        if (err) {
+          dbError(res, err);
+          return;
+        }
+
+        ok(res);
+      });
+    });
+  },
+  verifyProvider(req, res) {
+    const {
+      username,
+    } = req.body;
+
+    Provider.findOne({ username }, (err, prov) => {
+      if (!prov) {
+        sendError(res, {
+          error: errors.receiver_not_exists,
+        });
+        return;
+      }
+
+      ok(res);
+
+      prov.verify({ modId: req.session.modId });
+    });
   }
 };

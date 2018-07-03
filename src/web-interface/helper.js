@@ -16,8 +16,18 @@ const sendError = (res, { error, details = {}, status = 400 }) => {
   });
 };
 
+const dbError = (res, err) => {
+  sendError(res, {
+    success: false,
+    error: errors.unexpected,
+    status: 500,
+  });
+  console.error(err);
+};
+
 module.exports = {
   sendError,
+  dbError,
   errors,
   config,
 };

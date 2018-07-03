@@ -52,7 +52,18 @@ module.exports = {
     type: mongoose.Schema.Types.ObjectId,
     ref: name,
   }),
+  unique: prev => 
+    (typeof prev === 'object'
+      ? { ...prev, unique: true }
+      : { type: prev, unique: true }),
   idRef: id => mongoose.Types.ObjectId(id),
+  price: {
+    value: Number,
+    currency: {
+      type: String,
+      enum: ['eur', 'czk'],
+    },
+  },
   common: {
     statics: {
       findByPasswordAndUsername({ password, username }, cb) {
@@ -72,5 +83,6 @@ module.exports = {
   types: {
     Point,
   },
+  Schema: mongoose.Schema,
 };
 

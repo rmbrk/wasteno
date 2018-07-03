@@ -9,7 +9,10 @@ const controllers = require('./controllers');
 
 const script = fs.readFileSync('/src/web-interface/routes.txt', 'utf-8');
 
-const lines = script.trim().split('\n').map(line => line.trim());
+const lines = script.trim()
+  .split('\n')
+  .map(line => line.trim())
+  .filter(line => !line.startsWith('#'));
 
 const blocks = lines.reduce((acc, line) => {
   if (line.length === 0) {
@@ -30,7 +33,7 @@ const routes = blocks.reduce((routeAcc, block) => {
   const consumerBlocks = rest.reduce((consumerBlockAcc, line) => {
     if (line.startsWith('- ')) {
       consumerBlockAcc.push({
-        subject: removePrefix(line),
+        subjectName: removePrefix(line),
         lines: [],
       });
     } else {
@@ -41,7 +44,7 @@ const routes = blocks.reduce((routeAcc, block) => {
   }, []);
 
   const lastConsumerBlockIndex = consumerBlocks.length - 1;
-  const consumers = consumerBlocks.reduce((consumersAcc, { subject, lines }, index) => {
+  const consumers = consumerBlocks.reduce((consumersAcc, { subjectName, lines }, index) => {
     const validatorLines = lines
       .filter(line => line.startsWith('. '))
       .map(removePrefix);
@@ -50,12 +53,18 @@ const routes = blocks.reduce((routeAcc, block) => {
       .map(removePrefix);
 
     if (validatorLines.length > 0) {
-      const validatorFns = flatten(validatorLines.map((line) =>
-        line.split(' ').map((validator) => {
-          const fn = validators[subject][validator];
+      const validationSubject = validators[subjectName];
+
+      if (!validationSubject) {
+        throw `can't find validation subject ${subjectName}`;
+      }
+
+      const validatorFns = flatten(validatorLines.map(line =>
+        line.split(' ').map((validatorName) => {
+          const fn = validationSubject[validatorName];
 
           if (!fn) {
-            throw `can't find validator ${subject}.${validator}`;
+            throw `can't find validator ${subjectName}.${validatorName}`;
           }
 
           return fn;
@@ -69,13 +78,20 @@ const routes = blocks.reduce((routeAcc, block) => {
         if (controllerLines.length > 1) {
           throw `defined more than one controller in "${method} ${path}"`;
         } else {
-          const [controller] = controllerLines;
-          const fn = controllers[subject][controller];
+          const controllerSubject = controllers[subjectName];
+
+          if (!controllerSubject) {
+            throw `can't find controller subject ${subjectName}`;
+          }
+
+          const [controllerName] = controllerLines;
+          const fn = controllerSubject[controllerName];
 
           if (!fn) {
-            throw `can't find controller ${subject}.${controller}`;
+            throw `can't find controller ${subjectName}.${controllerName}`;
           }
-          consumersAcc.push(controllers[subject][controller]);
+
+          consumersAcc.push(fn);
         }
       } else {
         throw `defined controller before end of block "${method} ${path}"`;

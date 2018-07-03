@@ -1,4 +1,8 @@
 const {
+  Receiver,
+} = require('./../../database/models');
+
+const {
   check,
   validator,
   handleRequestValidation,
@@ -6,6 +10,7 @@ const {
 
 const {
   sendError,
+  dbError,
   errors,
   config,
 } = require('./../helper.js');
@@ -29,14 +34,20 @@ const validateLocations = (locations) => {
 
 module.exports = {
   loggedIn(req, res, next) {
-    if (!req.session.recAuthed) {
+    const {
+      recAuthed,
+      recAuthedEndMS,
+      recId,
+    } = req.session;
+
+    if (!recAuthed) {
       sendError(res, {
         error: errors.common_login_no,
       });
       return;
     }
 
-    if (req.session.recAuthed && req.session.recAuthedEndMS < Date.now()) {
+    if (recAuthed && recAuthedEndMS < Date.now()) {
       sendError(res, {
         error: errors.receiver_auth_expired,
         details: {
@@ -45,7 +56,23 @@ module.exports = {
       });
       return;
     }
-    next();
+
+    Receiver.findById(recId, (err, rec) => {
+      if (err) {
+        dbError(res, err);
+        return;
+      }
+
+      if (!rec) {
+        sendError(res, {
+          error: errors.receiver_not_exists,
+        });
+        return;
+      }
+
+      req.rec = rec;
+      next();
+    });
   },
   notLoggedIn(req, res, next) {
     if (req.session.recAuthed) {

@@ -3,11 +3,11 @@ const {
 } = require('./../../database/models');
 
 const ok = require('./ok.js');
-
 const {
   errors,
   config,
   sendError,
+  dbError,
 } = require('./../helper.js');
 
 module.exports = {
@@ -91,47 +91,49 @@ module.exports = {
   },
   getLocations(req, res) {
     const {
-      recId,
-    } = req.session;
+      username,
+    } = req.body;
 
-    Receiver.findById(recId)
+    Receiver.findOne({ username })
       .populate('locations')
       .exec((err, rec) => {
-      if (!rec) {
-        sendError(res, {
-          error: errors.common_login_unexpected,
-        });
-        return;
-      }
+        if (!rec) {
+          sendError(res, {
+            error: errors.receiver_not_exists,
+          });
+          return;
+        }
 
-      ok(res, {
-        locations: rec.locations,
+        ok(res, {
+          locations: rec.locations,
+        });
       });
-    });
   },
   addLocations(req, res) {
     const {
       locations,
     } = req.body;
 
-    const {
-      recId,
-    } = req.session;
+    req.rec
+      .addLocations({ locations }, (err) => {
+        if (err) {
+          dbError(res, err);
+          return;
+        }
 
-    Receiver.findById(recId, (err, rec) => {
-      if (!rec) {
-        sendError(res, {
-          error: errors.common_login_unexpected,
-        });
+        ok(res);
+      });
+  },
+  delete(req, res) {
+    Receiver.findByIdAndDelete(req.rec._id, (err) => {
+      if (err) {
+        dbError(res, err);
         return;
       }
 
-      rec.addLocations({ locations }, (err) => {
-        if (err) {
-          console.error(err);
-        }
-        ok(res);
-      });
+      req.session.recAuthed = false;
+
+      ok(res);
     });
   },
 };

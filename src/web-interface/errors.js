@@ -1,4 +1,5 @@
 module.exports = {
+  bad_json: 'bad json',
   common_auth_expired: 'login expired',
   common_name_missing: 'name missing',
   common_name_length_short: 'name too short',
@@ -32,5 +33,11 @@ module.exports = {
   common_address_missing: 'address missing',
   common_address_invalid: 'address is invalid',
 
+  sale_description_length_short: 'description too short',
+  sale_description_length_long: 'description too long',
+  sale_description_out_of_charset: 'description contains characters not in the allowed charset',
+
   receiver_not_exists: 'receiver doesn\'t exist',
+  provider_not_exists: 'provider doesn\'t exist',
+  sale_name_exists: 'sale name alraedy exists',
 };
