@@ -10,27 +10,14 @@ const {
 
 const {
   sendError,
-  dbError,
+  genDbError,
   errors,
   config,
 } = require('./../helper.js');
 
-const { validatorFns: commonValidators } = require('./Common.js');
+const common = require('./common.js');
 
-const validateLocations = (locations) => {
-  if (!locations) {
-    return errors.common_object_missing;
-  }
-
-  for (let i = 0; i < locations.length; ++i) {
-    const location = locations[i];
-
-    const locationError = commonValidators.validateLocation(location);
-    if (locationError) {
-      return [locationError, { index: i }];
-    }
-  }
-};
+const { validatorFns: commonValidators } = common;
 
 const validateDescription = (description) => {
   const {
@@ -93,74 +80,69 @@ const validateSales = (sales) => {
   }
 };
 
+const validateSaleEid = (saleName) => {
+  if (!saleName) {
+    return errors.sale_eid_missing;
+  }
+};
+
+const validateSaleInstance = (saleInstance) => {
+  const {
+    eid,
+    quantity,
+    expiry,
+  } = saleInstance;
+
+  if (quantity) {
+    if (typeof quantity !== 'number'
+      || Math.floor(quantity) !== quantity
+      || quantity < 1
+      || quantity > config.saleInstance.quantity.max) {
+      return errors.sale_instance_quantity_invalid;
+    }
+  }
+
+  if (expiry) {
+    if (typeof expiry !== 'number') {
+      return errors.sale_instance_expiry_invalid;
+    }
+  }
+};
+
+const validateSaleInstances = (saleInstances) => {
+  if (!saleInstances) {
+    return errors.common_object_missing;
+  }
+
+  for (let i = 0; i < saleInstances.length; ++i) {
+    const saleInstance = saleInstances[i];
+
+    const saleInstanceError = validateSaleInstance(saleInstance);
+    if (saleInstanceError) {
+      return [saleInstanceError, { index: i }];
+    }
+  }
+};
+
+const validationConfig = {
+  modelName: 'Provider',
+  errorPrefix: 'provider',
+  sessionPrefix: 'prov',
+};
 module.exports = {
-  loggedIn(req, res, next) {
-    const {
-      provAuthed,
-      provAuthedEndMS,
-      provId,
-    } = req.session;
-
-    if (!provAuthed) {
-      sendError(res, {
-        error: errors.common_login_no,
-      });
-      return;
-    }
-
-    if (provAuthed && provAuthedEndMS < Date.now()) {
-      sendError(res, {
-        error: errors.proveiver_auth_expired,
-        details: {
-          config: config.proveiver.auth,
-        },
-      });
-      return;
-    }
-
-    Provider.findById(provId, (err, prov) => {
-      if (err) {
-        dbError(res, err);
-        return;
-      }
-
-      if (!prov) {
-        sendError(res, {
-          error: errors.provider_not_exists,
-        });
-        return;
-      }
-
-      req.prov = prov;
-      next();
-    });
-  },
-  notLoggedIn(req, res, next) {
-    if (req.session.provAuthed) {
-      sendError(res, {
-        error: errors.common_login_yes,
-      });
-      return;
-    }
-
-    next();
-  },
-  locations(req, res, next) {
-    handleRequestValidation(req, res, next, [{
-      fn: validateLocations,
-      property: 'locations',
-    }]);
-  },
+  config: validationConfig,
+  ...common.group.user,
+  ...common.group.locationOwner,
   salePagination(req, res, next) {
     const {
       offset,
       amount,
     } = req.body;
-    
+
     const paginationError = commonValidators.validatePagination(offset, amount, config.sale.pagination);
     if (paginationError) {
       sendError(res, {
-        error: paginationError, 
+        error: paginationError,
         details: config.sale.pagination,
       });
       return;
@@ -172,6 +154,27 @@ module.exports = {
     handleRequestValidation(req, res, next, [{
       fn: validateSales,
       property: 'sales',
+      details: {
+        config: config.sale,
+      },
+    }]);
+  },
+  saleEid(req, res, next) {
+    handleRequestValidation(req, res, next, [{
+      fn: validateSaleEid,
+      property: 'saleEid',
+      details: {
+        config: config.sale,
+      },
+    }]);
+  },
+  saleInstances(req, res, next) {
+    handleRequestValidation(req, res, next, [{
+      fn: validateSaleInstances,
+      property: 'saleInstances',
+      details: {
+        config: config.saleInstance,
+      },
     }]);
   },
 };

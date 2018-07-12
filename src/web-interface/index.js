@@ -8,7 +8,7 @@ const controllers = require('./controllers');
 const errors = require('./errors.js');
 const {
   sendError,
-}= require('./helper.js');
+} = require('./helper.js');
 
 const app = express();
 app.use(session({
@@ -21,11 +21,11 @@ app.use((req, res, next) => {
   bodyParser.json()(req, res, (err) => {
     if (err) {
       return sendError(res, {
-        error: errors.bad_json, 
-      })
-    };
+        error: errors.bad_json,
+      });
+    }
     next();
-  })
+  });
 });
 
 const apiRouter = express.Router();
@@ -38,4 +38,4 @@ app.use(express.static('/public'));
 
 app.listen(3000, () => {
   console.log('web server started');
-})
+});

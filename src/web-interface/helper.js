@@ -1,6 +1,9 @@
 const errors = require('./errors.js');
 const config = require('./../config.js');
 
+const ok = (res, data = {}) => res.status(200).json({ success: true, data });
+const genOk = res => () => ok(res);
+
 const sendError = (res, { error, details = {}, status = 400 }) => {
   let errorMsg = error;
 
@@ -24,10 +27,14 @@ const dbError = (res, err) => {
   });
   console.error(err);
 };
+const genDbError = res => err => dbError(res, err);
 
 module.exports = {
+  ok,
+  genOk,
   sendError,
   dbError,
+  genDbError,
   errors,
   config,
 };

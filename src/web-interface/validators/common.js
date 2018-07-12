@@ -7,12 +7,20 @@ const {
 const {
   sendError,
   errors,
+  genDbError,
   config,
 } = require('./../helper.js');
+
+const {
+  prefixProxy,
+} = require('./../../utils.js');
+
+const models = require('./../../database/models/');
 
 const validateName = (name, opts = {}) => {
   const {
     exists = false,
+    nameConfig = config.common.name,
   } = opts;
 
   if (!name) {
@@ -26,8 +34,8 @@ const validateName = (name, opts = {}) => {
   }
 
   const lengthError = check.len(name, {
-    min: config.common.name.minSize,
-    max: config.common.name.maxSize,
+    min: nameConfig.minSize,
+    max: nameConfig.maxSize,
     minError: errors.common_name_length_short,
     maxError: errors.common_name_length_long,
   });
@@ -36,7 +44,7 @@ const validateName = (name, opts = {}) => {
   }
 
   const charsetError = check.charset(name, {
-    charset: config.common.name.charset,
+    charset: nameConfig.charset,
     charserError: errors.common_name_out_of_charset,
   });
   if (charsetError) {
@@ -236,32 +244,54 @@ const validateLocation = (location) => {
   }
 };
 
+const validateLocations = (locations) => {
+  if (!locations) {
+    return errors.common_object_missing;
+  }
+
+  let isAnyMain = false;
+  for (let i = 0; i < locations.length; ++i) {
+    const location = locations[i];
+
+    if (location.isMain) {
+      if (isAnyMain) {
+        return [errors.common_location_multiple_main, { index: i }];
+      }
+
+      isAnyMain = true;
+    }
+
+    const locationError = validateLocation(location);
+    if (locationError) {
+      return [locationError, { index: i }];
+    }
+  }
+};
 const validatePagination = (offset, amount, paginationConfig) => {
   const {
     maxAmount,
   } = paginationConfig;
 
   if (!offset) {
-    return errors.common_offset_missing; 
+    return errors.common_offset_missing;
   }
 
   if (typeof offset !== 'number') {
-    return errors.common_offset_invalid; 
+    return errors.common_offset_invalid;
   }
 
   if (!amount) {
-    return errors.common_amount_missing; 
+    return errors.common_amount_missing;
   }
 
   if (typeof amount !== 'number') {
-    return errors.common_amount_invalid; 
+    return errors.common_amount_invalid;
   }
 
   if (amount >= maxAmount) {
-    return errors.common_amount_invalid; 
+    return errors.common_amount_invalid;
   }
-
-}
+};
 
 module.exports = {
   validatorFns: {
@@ -276,43 +306,103 @@ module.exports = {
     validateLocation,
     validatePagination,
   },
-  name(req, res, next) {
-    handleRequestValidation(req, res, next, [{
-      fn: validateName,
-      property: 'name',
-      details: {
-        config: config.common.name,
+  group: {
+    user: {
+      loggedIn(req, res, next) {
+        const session = prefixProxy(this.config.sessionPrefix, req.session);
+        const modelErrors = prefixProxy(`${this.config.errorPrefix}_`, errors);
+
+        if (!session.authed) {
+          sendError(res, {
+            error: errors.common_login_no,
+          });
+          return;
+        }
+
+        if (session.authed && session.authedEndMS < Date.now()) {
+          sendError(res, {
+            error: errors.common_auth_expired,
+            details: {
+              config: config.common.auth,
+            },
+          });
+          return;
+        }
+
+        new models[this.config.modelName]({ id: session.id })
+          .fetch()
+          .then((model) => {
+            if (!model) {
+              sendError(res, {
+                error: modelErrors.not_exists,
+              });
+              return;
+            }
+
+            req[this.config.sessionPrefix] = model;
+            next();
+          })
+          .catch(genDbError(res));
       },
-    }]);
-  },
-  username(req, res, next) {
-    handleRequestValidation(req, res, next, [{
-      fn: validateUsername,
-      property: 'username',
-      details: {
-        config: config.common.username,
+      notLoggedIn(req, res, next) {
+        const session = prefixProxy(this.config.sessionPrefix, req.session);
+
+        if (session.authed) {
+          sendError(res, {
+            error: errors.common_login_yes,
+          });
+          return;
+        }
+
+        next();
       },
-    }]);
-  },
-  password(req, res, next) {
-    handleRequestValidation(req, res, next, [{
-      fn: validatePassword,
-      property: 'password',
-      details: {
-        config: config.common.password,
+      name(req, res, next) {
+        handleRequestValidation(req, res, next, [{
+          fn: validateName,
+          property: 'name',
+          details: {
+            config: config.common.name,
+          },
+        }]);
       },
-    }]);
-  },
-  email(req, res, next) {
-    handleRequestValidation(req, res, next, [{
-      fn: validateEmail,
-      property: 'email',
-    }]);
-  },
-  phone(req, res, next) {
-    handleRequestValidation(req, res, next, [{
-      fn: validatePhone,
-      property: 'phone',
-    }]);
+      username(req, res, next) {
+        handleRequestValidation(req, res, next, [{
+          fn: validateUsername,
+          property: 'username',
+          details: {
+            config: config.common.username,
+          },
+        }]);
+      },
+      password(req, res, next) {
+        handleRequestValidation(req, res, next, [{
+          fn: validatePassword,
+          property: 'password',
+          details: {
+            config: config.common.password,
+          },
+        }]);
+      },
+      email(req, res, next) {
+        handleRequestValidation(req, res, next, [{
+          fn: validateEmail,
+          property: 'email',
+        }]);
+      },
+      phone(req, res, next) {
+        handleRequestValidation(req, res, next, [{
+          fn: validatePhone,
+          property: 'phone',
+        }]);
+      },
+    },
+    locationOwner: {
+      locations(req, res, next) {
+        handleRequestValidation(req, res, next, [{
+          fn: validateLocations,
+          property: 'locations',
+        }]) 
+      } 
+    }
   },
 };

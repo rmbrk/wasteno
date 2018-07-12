@@ -3,18 +3,19 @@ const { types } = require('./common.js');
 module.exports = {
   schema: {
     ...types.group.price,
-    eid: types.eid,
     quantity: [['integer']],
-    expiry: [['date']],
+    minExpiry: [['date']],
   },
   references: {
-    location: 'ProviderLocation',
     parent: 'Sale',
+    location: 'ProviderLocation',
+    order: 'Order',
   },
   associations: {
     belongsTo: {
       parent: 'Sale via parent',
       location: 'ProviderLocation via location',
+      order: 'Order via order',
     },
   },
 };

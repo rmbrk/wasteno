@@ -1,29 +1,32 @@
-const mongoose = require('mongoose');
-const { Moderator } = require('./models');
+const models = require('./models');
 
-mongoose.connect('mongodb://mongodb:27017', {
-  user: process.env.MONGO_USERNAME,
-  pass: process.env.MONGO_PASSWORD,
-});
+const {
+  Moderator,
+  ready,
+} = models;
 
-mongoose.connection.on('open', (err) => {
-  if (err) {
-    throw err; 
-  }
+ready.then(() => {
+  new Moderator({ isOrigin: true })
+    .fetch()
+    .then((mod) => {
+      if (mod) {
+        console.log('origin moderator detected');
+        return;
+      }
 
-  console.log('connected to mongo');
-  Moderator.findOne({ isOrigin: true }, (err, mod) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    if (!mod) {
-      console.log('creating origin mod');
+      console.log('origin moderator not detected');
       const data = JSON.parse(process.env.ORIGIN_MOD_DATA);
-      Moderator.generate({
-        isOrigin: true,
+      return new Moderator({
         ...data,
-      });
-    }
-  });
+        isOrigin: true,
+      })
+        .save()
+        .then((mod) => {
+          console.log('origin moderator created with username ', data.username);
+        });
+    })
+    .catch((err) => {
+      console.log(err);
+    });
 });
+

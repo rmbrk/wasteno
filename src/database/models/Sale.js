@@ -1,16 +1,23 @@
-const { ref, unique } = require('./helper.js');
+const { types, methods } = require('./common.js');
 
 module.exports = {
   schema: {
-    name: unique(String),
-    description: String,
-    inStock: Boolean,
-    photoUrl: String,
-    instances: [ref('SaleInstance')],
-    parentId: ref('Provider'),
-    category: {
-      type: String,
-      enum: ['FMCG', 'durable'],
-    },
+    eid: types.eid,
+    name: 'string',
+    description: 'string',
+    inStock: 'boolean',
+    photoUrl: 'string',
+    category: [['enum', ['FMCG', 'durable']]],
   },
+  references: {
+    parent: 'Provider',
+  },
+  associations: {
+    belongsTo: {
+      provider: 'Provider via parent',
+    },
+    hasMany: {
+      instances: 'SaleInstance.parent',
+    } 
+  }
 };

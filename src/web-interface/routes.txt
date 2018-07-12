@@ -9,17 +9,13 @@
 post /moderator/login
 - moderator
   . notLoggedIn
-- common
   . username password
-- moderator
   > login
 
 post /moderator/create
 - moderator
   . loggedIn
-- common
   . username password name phone email
-- moderator
   > create
 
 post /moderator/logout
@@ -35,56 +31,43 @@ post /moderator/delete
 post /moderator/delete/moderator
 - moderator
   . loggedIn
-- common
   . username
-- moderator
   > deleteModerator
 
 post /moderator/verify/receiver
 - moderator
   . loggedIn
-- common
   . username
-- moderator
   > verifyReceiver
 
 post /moderator/delete/receiver
 - moderator
   . loggedIn
-- common
   . username
-- moderator
   > deleteReceiver
 
 post /moderator/verify/provider
 - moderator
   . loggedIn
-- common
   . username
-- moderator
   > verifyProvider
-#
-#post /moderator/verify/transporter
-#- moderator
-#  . loggedIn
-#- common
-#  . username
-#- moderator
-#  > verifyTransporter
+
+post /moderator/verify/transporter
+- moderator
+  . loggedIn
+  . username
+  > verifyTransporter
 
 # RECEIVER
 post /receiver/create
-- common
-  . name username password email phone
 - receiver
+  . name username password email phone
   > create
 
 post /receiver/login
 - receiver
   . notLoggedIn
-- common
   . username password
-- receiver
   > login
 
 post /receiver/logout
@@ -98,29 +81,26 @@ post /receiver/delete
   > delete
 
 post /receiver/locations
-- common
-  . username
 - receiver
+  . username
   > getLocations
 
 post /receiver/locations/add
 - receiver
-  . loggedIn locations
+  . loggedIn
+  . locations
   > addLocations
 
 # PROVIDER
 post /provider/login
 - provider
   . notLoggedIn
-- common
   . username password
-- provider
   > login
 
 post /provider/create
-- common
-  . name username password email phone
 - provider
+  . name username password email phone
   > create
 
 post /provider/delete
@@ -129,30 +109,39 @@ post /provider/delete
   > delete
 
 post /provider/locations
-- common
-  . username
 - provider
+  . username
   > getLocations
 
 post /provider/locations/add
 - provider
-  . loggedIn locations
+  . loggedIn
+  . locations
   > addLocations
 
 post /provider/sales
-- common
-  . username
 - provider
-  . salePagination
+  . salePagination username
   > getSales
 
 post /provider/sales/add
 - provider
-  . loggedIn sales
+  . loggedIn
+  . sales
   > addSales
-#
-#post /transporter/create
-#- common
-#  . name username password email phone
-#- transporter
-#  > create
+
+post /provider/sales/instances
+- provider
+  . username salePagination saleEid
+  > getSaleInstances
+
+post /provider/sales/instances/add
+- provider
+  . loggedIn
+  . saleEid saleInstances
+  > addSaleInstances
+
+post /transporter/create
+- transporter
+  . name username password email phone
+  > create

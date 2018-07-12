@@ -36,10 +36,47 @@ const pascalToCamel = (str) => {
   return firstLetter.toLowerCase() + rest.join('');
 };
 
+const uniquify = (array) => {
+  for (let i = 0; i < array.length; ++i) {
+    if (array.indexOf(array[i]) !== i) {
+      array.splice(i, 1);
+      --i;
+    }
+  }
+  return array;
+};
+
+const getUnique = array => uniquify([...array]);
+
+const getPrefixProxyAccessor = (prefix, attribute, isUppercase) => {
+  const [first, ...rest] = attribute.split('');
+  const firstChar = isUppercase
+    ? first.toUppercase()
+    : first;
+  return `${prefix}${firstChar}${rest.join('')}`;
+};
+// possible leak
+const prefixProxy = (prefix, base, opts = {}) => {
+  const {
+    isUppercase = true,
+  } = opts;
+  new Proxy(base, {
+    get(obj, attribute) {
+      return obj[getPrefixProxyAccessor(prefix, attribute, isUppercase)];
+    },
+    set(obj, attribute, value) {
+      return obj[getPrefixProxyAccessor(prefix, attribute, isUppercase)] = value;
+    },
+  });
+};
+
 module.exports = {
   isArray,
   flattenOne,
   flatten,
+
+  getUnique,
+  uniquify,
 
   isObject,
   flattenPropertiesOne,
@@ -47,4 +84,6 @@ module.exports = {
 
   isUpperCase,
   pascalToCamel,
+
+  prefixProxy,
 };

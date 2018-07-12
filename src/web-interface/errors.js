@@ -32,6 +32,7 @@ module.exports = {
   common_lat_invalid: 'latitude is invalid',
   common_address_missing: 'address missing',
   common_address_invalid: 'address is invalid',
+  common_location_multiple_main: 'main location set multiple times',
 
   sale_description_length_short: 'description too short',
   sale_description_length_long: 'description too long',
@@ -39,5 +40,10 @@ module.exports = {
 
   receiver_not_exists: 'receiver doesn\'t exist',
   provider_not_exists: 'provider doesn\'t exist',
-  sale_name_exists: 'sale name alraedy exists',
+  sale_eid_exists: 'sale eid already exists',
+  sale_eid_not_exists: 'sale eid doesn\'t exist',
+  sale_eid_missing: 'sale eid missing',
+  sale_instance_quantity_invalid: 'sale instance quantity is invalid',
+  sale_instance_expiry_passed: 'sale instance has already exipired',
+  sale_instance_expiry_invalid: 'sale instance expiry is invalid',
 };

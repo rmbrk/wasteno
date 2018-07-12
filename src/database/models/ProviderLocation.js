@@ -1,15 +1,24 @@
-const { ref, types: { Point } } = require('./helper.js');
+const { types } = require('./common.js');
 
 module.exports = {
   schema: {
-    parent: ref('Provider'),
-    isMain: Boolean,
-    screenName: String,
-    address: String,
-    coordinates: Point,
-    contact: {
-      email: String,
-      phone: String,
+    isMain: [['boolean']],
+    ...types.group.contact,
+    ...types.group.location,
+  },
+  references: {
+    parent: 'Provider',
+  },
+  associations: {
+    hasMany: {
+      saleInstances: 'SaleInstance.location',
+      orderedSaleInstances: 'OrderedSaleInstance.location',
+    },
+    belongsTo: {
+      parent: 'Provider',
+    },
+    belongsToMany: {
+      orders: 'Order',
     },
   },
 };

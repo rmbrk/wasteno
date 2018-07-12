@@ -5,16 +5,56 @@ const {
   Transporter,
 } = require('./../../database/models');
 
-const ok = require('./ok.js');
-
 const {
   errors,
   config,
   sendError,
+  ok,
+  genOk,
   dbError,
+  genDbError,
 } = require('./../helper.js');
 
+const {
+  hash,
+} = require('./../../utils.js');
+
+const common = require('./common.js');
+
+const getVerify = model => (req, res) => {
+  const {
+    username,
+  } = req.body;
+
+  const {
+    modId,
+  } = req.session;
+
+  new model({ username })
+    .verify({ modId })
+    .then(genOk(res))
+    .catch(genDbError(res));
+};
+const getDelete = model => (req, res) => {
+  const {
+    username,
+  } = req.body;
+
+  new model({ username })
+    .destroy({ require: false })
+    .then(genOk(res))
+    .catch(genDbError(res));
+}
+
+const controllerConfig = {
+  model: Moderator,
+  sessionPrefix: 'mod',
+  errorPrefix: 'moderator',
+};
 module.exports = {
+  config: controllerConfig,
+  ...common.group.user,
+
   create(req, res) {
     const {
       name,
@@ -24,81 +64,34 @@ module.exports = {
       password,
     } = req.body;
 
-    const parentId = req.session.modId;
+    const parent = req.session.modId;
 
-    Moderator.findOne({ username }, (err, mod) => {
-      if (mod) {
-        sendError(res, {
-          error: errors.common_username_exists,
-        });
-        return;
-      }
-
-      Moderator.generate({
-        isOrigin: false,
-        parentId,
-        name,
-        email,
-        phone,
-        username,
-        password,
-      });
-
-      ok(res);
-    });
-  },
-  login(req, res) {
-    const {
-      username,
-      password,
-    } = req.body;
-
-    const now = Date.now();
-
-    if (now < req.session.modLoginBanEndMS) {
-      return sendError(res, {
-        error: errors.common_login_before_ban_end,
-        details: config.common.login,
-      });
-    }
-
-    Moderator.findByPasswordAndUsername({ password, username }, (mod) => {
-      if (!mod) {
-        if (!req.session.modLoginTries) {
-          req.session.modLoginTries = 0;
+    new Moderator({ username })
+      .fetch()
+      .then((mod) => {
+        if (mod) {
+          sendError(res, {
+            error: errors.common_username_exists,
+          });
+          return;
         }
 
-        if (!req.session.modLoginLastTry || now - req.session.modLoginLastTry > config.common.login.intervalMS) {
-          req.session.modLoginLastTry = Date.now();
-          req.session.modLoginTries = 0;
-        }
-
-        req.session.modLoginTries++;
-
-        if (req.session.modLoginTries >= config.common.login.tries) {
-          req.session.modLoginBanEndMS = now + config.common.login.intervalMS;
-        }
-
-        return sendError(res, {
-          error: errors.common_login_invalid,
-        });
-      }
-
-      req.session.modAuthed = true;
-      req.session.modId = mod._id;
-      req.session.modLoginTries = 0;
-      req.session.modAuthedEndMS = now + config.common.auth.intervalMS;
-
-      ok(res);
-    });
-  },
-  logout(req, res) {
-    req.session.modAuthed = false;
-
-    ok(res);
+        return new Moderator({
+          isOrigin: false,
+          parent,
+          name,
+          email,
+          phone,
+          username,
+          password,
+        })
+          .save()
+          .then(genOk(res));
+      })
+      .catch(genDbError(res));
   },
   delete(req, res) {
-    if (req.mod.isOrigin) {
+    if (req.mod.get('isOrigin')) {
       sendError(res, {
         error: errors.moderator_is_origin,
       });
@@ -107,112 +100,43 @@ module.exports = {
 
     req.session.modAuthed = false;
 
-    req.mod.remove((err) => {
-      if (err) {
-        dbError(res, err);
-        return;
-      }
-
-      ok(res);
-    });
+    req.mod.destroy()
+      .then(genOk(res))
+      .catch(genDbError(res));
   },
   deleteModerator(req, res) {
     const {
       username,
     } = req.body;
 
-    Moderator.findOne({ username }, (err, mod) => {
-      if (err) {
-        dbError(res, err);
-        return;
-      }
-
-      if (!mod) {
-        sendError(res, {
-          error: errors.moderator_not_exists,
-        });
-        return;
-      }
-
-      if (mod.isOrigin) {
-        sendError(res, {
-          error: errors.moderator_is_origin,
-        });
-        return;
-      }
-
-      mod.remove((err) => {
-        if (err) {
-          dbError(res, err);
+    new Moderator({ username })
+      .fetch((mod) => {
+        if (!mod) {
+          sendError(res, {
+            error: errors.moderator_not_exists,
+          });
           return;
         }
 
-        ok(res);
-      });
-    });
-  },
-  verifyReceiver(req, res) {
-    const {
-      username,
-    } = req.body;
-
-    Receiver.findOne({ username }, (err, receiver) => {
-      if (!receiver) {
-        sendError(res, {
-          error: errors.receiver_not_exists,
-        });
-        return;
-      }
-
-      ok(res);
-
-      receiver.verify({ modId: req.session.modId });
-    });
-  },
-  deleteReceiver(req, res) {
-    const {
-      username,
-    } = req.body;
-
-    Receiver.findOne({ username }, (err, rec) => {
-      if (err) {
-        dbError(res, err);
-        return;
-      }
-
-      if (!rec) {
-        sendError(res, {
-          error: errors.receiver_not_exists,
-        });
-        return;
-      }
-
-      rec.remove((err) => {
-        if (err) {
-          dbError(res, err);
+        if (mod.isOrigin) {
+          sendError(res, {
+            error: errors.moderator_is_origin,
+          });
           return;
         }
 
-        ok(res);
-      });
-    });
+        return mod.destroy()
+          .then(genOk(res));
+      })
+      .catch(genDbError(res));
   },
-  verifyProvider(req, res) {
-    const {
-      username,
-    } = req.body;
 
-    Provider.findOne({ username }, (err, prov) => {
-      if (!prov) {
-        sendError(res, {
-          error: errors.receiver_not_exists,
-        });
-        return;
-      }
+  verifyReceiver: getVerify(Receiver),
+  deleteReceiver: getDelete(Receiver),
 
-      ok(res);
+  verifyProvider: getVerify(Provider),
+  deleteProvider: getDelete(Provider),
 
-      prov.verify({ modId: req.session.modId });
-    });
-  }
+  verifyTransporter: getVerify(Transporter),
+  deleteTransporter: getDelete(Transporter),
 };

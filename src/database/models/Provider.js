@@ -1,73 +1,47 @@
-const {
-  ref, idRef, model, common,
-} = require('./helper.js');
 const bcrypt = require('bcrypt');
+const { types, methods } = require('./common.js');
 
+const { models } = require('./helper.js');
+
+const methodConfig = {
+  modelName: 'Provider',
+  locationCollection: 'ProviderLocations',
+  locationModel: 'ProviderLocation'
+}
 module.exports = {
   schema: {
-    name: String,
-    verifiedBy: ref('Moderator'),
-    email: String,
-    phone: String,
-    username: String,
-    hash: String,
-    locations: [ref('ProviderLocation')],
-    sales: [ref('Sale')],
-    hasPackers: Boolean,
+    ...types.group.contact,
+    ...types.group.login,
+    hasPackers: [['boolean']],
+  },
+  references: {
+    verifiedBy: 'Moderator',
+  },
+  associations: {
+    hasMany: {
+      locations: 'ProviderLocation.parent',
+      sales: 'Sale.provider',
+      orders: 'Order.provider',
+    },
+    belongsTo: {
+      verifier: 'Moderator via verifiedBy',
+    },
   },
   methods: {
-    verify(opts, cb = () => {}) {
-      const {
-        modId,
-      } = opts;
-
-      this.verified = true;
-      this.verifiedBy = idRef(modId);
-
-      this.save(cb);
+    config: methodConfig,
+    ...methods.group.locationOwner,
+    ...methods.group.user,
+    initialize() {
+      this.constructor.__super__.initialize.apply(this, arguments);
+      this.userInit();
     },
-    addLocations(opts, cb = () => {}) {
-      const {
-        locations,
-      } = opts;
-
-      const usableLocations = locations.map((location) => {
-        const {
-          isMain = false,
-          phone = this.phone,
-          email = this.email,
-          name,
-          address,
-          lon,
-          lat,
-        } = location;
-
-        return {
-          isMain,
-          phone,
-          email,
-          coordinates: {
-            type: 'Point',
-            coordinates: [lon, lat],
-          },
-          name,
-          address,
-        };
-      });
-
-      model('ProviderLocation').create(usableLocations, (err, locs) => {
-        this.locations.push(...locs.map(loc => loc._id));
-        this.save(cb);
-      });
-    },
-    addSales(opts, cb = () => {}) {
+    async addSales(opts) {
       const {
         sales,
       } = opts;
 
       // for some reason the code breaks otherwise
       if (sales.length === 0) {
-        cb();
         return;
       }
 
@@ -86,39 +60,12 @@ module.exports = {
           inStock,
           photoUrl,
           category,
-          parentId: idRef(this._id),
+          parent: this.id,
         };
       });
 
-      model('Sale').create(usableSales, (err, sales) => {
-        this.sales.push(...sales.map(sale => idRef(sale._id)));
-        this.save();
-
-        cb();
-      });
+      return new models.Sales(usableSales)
+        .invokeThen('save');
     },
-  },
-  statics: {
-    async generate(opts, cb = () => {}) {
-      const {
-        username,
-        password,
-        email,
-        phone,
-        name = username,
-      } = opts;
-
-      const hash = await bcrypt.hash(password, Number(process.env.BCRYPT_SALT_ROUNDS));
-
-      this.create({
-        username,
-        hash,
-        email,
-        phone,
-        name,
-        verified: false,
-      }, cb);
-    },
-    findByPasswordAndUsername: common.statics.findByPasswordAndUsername,
   },
 };

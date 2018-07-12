@@ -15,7 +15,8 @@ const {
   config,
 } = require('./../helper.js');
 
-const { validatorFns: commonValidators } = require('./Common.js');
+const common = require('./common.js');
+const { validatorFns: commonValidators } = common;
 
 const validateLocations = (locations) => {
   if (!locations) {
@@ -32,62 +33,13 @@ const validateLocations = (locations) => {
   }
 };
 
+const validationConfig = {
+  modelName: 'Receiver',
+  errorPrefix: 'receiver',
+  sessionPrefix: 'rec',
+};
 module.exports = {
-  loggedIn(req, res, next) {
-    const {
-      recAuthed,
-      recAuthedEndMS,
-      recId,
-    } = req.session;
-
-    if (!recAuthed) {
-      sendError(res, {
-        error: errors.common_login_no,
-      });
-      return;
-    }
-
-    if (recAuthed && recAuthedEndMS < Date.now()) {
-      sendError(res, {
-        error: errors.receiver_auth_expired,
-        details: {
-          config: config.receiver.auth,
-        },
-      });
-      return;
-    }
-
-    Receiver.findById(recId, (err, rec) => {
-      if (err) {
-        dbError(res, err);
-        return;
-      }
-
-      if (!rec) {
-        sendError(res, {
-          error: errors.receiver_not_exists,
-        });
-        return;
-      }
-
-      req.rec = rec;
-      next();
-    });
-  },
-  notLoggedIn(req, res, next) {
-    if (req.session.recAuthed) {
-      sendError(res, {
-        error: errors.common_login_yes,
-      });
-      return;
-    }
-
-    next();
-  },
-  locations(req, res, next) {
-    handleRequestValidation(req, res, next, [{
-      fn: validateLocations,
-      property: 'locations',
-    }]);
-  },
+  config: validationConfig,
+  ...common.group.user,
+  ...common.group.locationOwner,
 };

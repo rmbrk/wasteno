@@ -8,6 +8,11 @@ const extendedSpecialCharset = `${baseSpecialCharset} ()[]{}!?@/\\'"\`,:=+%$^&*`
 const alphanumBaseSpecialCharset = `${alphanum}${baseSpecialCharset}`;
 const alphanumExtendedSpecialCharset = `${alphanum}${extendedSpecialCharset}`;
 
+/**
+ * NOTES:
+ * all strings have a hard 255 byte limit on the db
+ *
+ */
 
 module.exports = {
   common: {
@@ -46,6 +51,11 @@ module.exports = {
 
   },
   sale: {
+    name: {
+      minSize: 4,
+      maxSize: 30,
+      charset: alphanumExtendedSpecialCharset,
+    },
     description: {
       minSize: 0,
       maxSize: 100,
@@ -55,6 +65,11 @@ module.exports = {
       items: {
         maxAmount: 30,
       },
+    },
+  },
+  saleInstance: {
+    quantity: {
+      max: 10000,
     },
   },
 };

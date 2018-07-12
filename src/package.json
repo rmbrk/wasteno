@@ -4,18 +4,20 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "/src/node_modules/.bin/nodemon ."
+    "start": "nodemon ."
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^2.0.1",
     "body-parser": "^1.18.3",
+    "bookshelf": "^0.13.3",
     "dotenv": "^6.0.0",
     "express": "^4.16.3",
     "express-session": "^1.15.6",
-    "mongoose": "5.1.5",
+    "knex": "^0.13.0",
     "nodemon": "^1.17.5",
+    "pg": "^7.4.3",
     "validator": "^10.3.0"
   }
 }

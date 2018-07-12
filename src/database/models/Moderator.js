@@ -1,42 +1,35 @@
-const { ref, idRef, common } = require('./helper.js');
 const bcrypt = require('bcrypt');
+const { types, methods } = require('./common.js');
 
+const methodConfig = {
+  modelName: 'Moderator',
+};
 module.exports = {
   schema: {
-    isOrigin: Boolean,
-    parent: ref('Moderator'),
-    name: String,
-
-    email: String,
-    phone: String,
-
-    username: String,
-    hash: String,
+    isOrigin: [['boolean']],
+    ...types.group.contact,
+    ...types.group.login,
   },
-  statics: {
-    async generate(opts, cb = () => {}) {
-      const {
-        isOrigin = false,
-        parentId,
-        username,
-        password,
-        email,
-        phone,
-        name = username,
-      } = opts;
-
-      const hash = await bcrypt.hash(password, Number(process.env.BCRYPT_SALT_ROUNDS));
-
-      this.create({
-        isOrigin,
-        parent: idRef(parentId),
-        username,
-        hash,
-        email,
-        phone,
-        name,
-      }, cb);
+  references: {
+    parent: 'Moderator',
+  },
+  associations: {
+    hasMany: {
+      children: 'Moderator.parent',
+      verifiedProviders: 'Provider.verifiedBy',
+      verifiedReceivers: 'Receiver.verifiedBy',
+      verifiedTransporters: 'Transporter.verifiedBy',
     },
-    findByPasswordAndUsername: common.statics.findByPasswordAndUsername,
+    belongsTo: {
+      parent: 'Moderator.parent',
+    },
+  },
+  methods: {
+    config: methodConfig,
+    ...methods.group.user,
+    initialize() {
+      this.constructor.__super__.initialize.apply(this, arguments);
+      this.userInit(); 
+    }
   },
 };

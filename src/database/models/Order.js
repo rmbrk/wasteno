@@ -1,43 +1,32 @@
-const { ref, price } = require('./helper.js');
+const { types } = require('./common.js');
 
 module.exports = {
   schema: {
-    items: [{
-      food: ref('Sale'),
-      price,
-      location: ref('ProviderLocation'),
-      amount: Number,
-      maxExpiry: Date,
-    }],
-    price: Number,
-    driver: ref('Transporter'),
-    clientLocation: ref('ReceiverLocation'),
-    at: Date,
-    status: {
-      formed: {
-        at: Date,
-        value: Boolean,
-      },
-      paid: {
-        at: Date,
-        value: Boolean,
-      },
-      accepted: {
-        at: Date,
-        value: Boolean,
-      },
-      pickedUp: {
-        at: Date,
-        value: Boolean,
-      },
-      underWay: {
-        at: Date,
-        value: Boolean,
-      },
-      arrived: {
-        at: Date,
-        value: Boolean,
-      },
+    ...types.group.price,
+
+    formed: 'boolean',
+    formedAt: 'date',
+
+    paid: 'date',
+    accepted: 'date',
+    pickedUp: 'date',
+    underWay: 'date',
+    arrived: 'date'
+  },
+  references: {
+    transporter: 'Transporter',
+    receiverLocation: 'ReceiverLocation',
+  },
+  associations: {
+    hasMany: {
+      orderedSaleInstances: 'OrderedSaleInstance.order',
     },
+    belongsTo: {
+      transporter: 'Transporter',
+      receiverLocation: 'ReceiverLocation',
+    },
+    belongsToMany: {
+      providerLocations: 'ProviderLocation',
+    }
   },
 };

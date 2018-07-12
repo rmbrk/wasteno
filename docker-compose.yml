@@ -8,21 +8,19 @@ services:
       - ./.env:/src/.env
       - ${FRONTEND_PATH}:/public
     ports: 
-      - 3000:3000
+      - 3000:${PORT}
     links:
-      - mongodb
+      - pgdb
     depends_on:
-      - mongodb
-  mongodb:
-    image: mongo:3
+      - pgdb
+  pgdb:
+    image: postgres
+    restart: always
     container_name: wasteno-mongodb
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
-      - MONGO_DATA_DIR=/data/db
-      - MONGO_LOG_DIR=/data/log
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - PGDATA=/data/db
+      - POSTGRES_DB=${DB_NAME}
     volumes:
       - ./db-data:/data
-    ports:
-      - 27017:27017
-    command: --smallfiles
