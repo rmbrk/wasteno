@@ -1,10 +1,12 @@
 const lowercaseLetters = 'abcdefghijklmnopqrstvuwxyz';
 const uppercaseLetters = lowercaseLetters.toUpperCase();
 const letters = `${lowercaseLetters}${uppercaseLetters}`;
-const numbers = '0123456789';
-const alphanum = `${letters}${numbers}`;
+const digits = '0123456789';
+const alphanum = `${letters}${digits}`;
+const lowercaseAlphanum = `${lowercaseLetters}${digits}`;
 const baseSpecialCharset = '_.-~';
 const extendedSpecialCharset = `${baseSpecialCharset} ()[]{}!?@/\\'"\`,:=+%$^&*`;
+const lowercaseAlphanumBaseSpecialCharset = `${lowercaseAlphanum}${baseSpecialCharset}`;
 const alphanumBaseSpecialCharset = `${alphanum}${baseSpecialCharset}`;
 const alphanumExtendedSpecialCharset = `${alphanum}${extendedSpecialCharset}`;
 
@@ -31,6 +33,12 @@ module.exports = {
       maxSize: 100,
       charset: alphanumExtendedSpecialCharset,
     },
+    email: {
+      maxSize: 200,
+    },
+    phone: {
+      maxSize: 20,
+    },
     login: {
       tries: 4,
       intervalMS: 10 * 60 * 1000, // 10 mins
@@ -44,11 +52,24 @@ module.exports = {
       },
     },
   },
+  location: {
+    address: {
+      minSize: 6,
+      maxSize: 150,
+      charset: alphanumExtendedSpecialCharset,
+    },
+  },
   moderator: {
 
   },
   receiver: {
 
+  },
+  provider: {
+    eid: {
+      size: 3,
+      charset: uppercaseLetters,
+    },
   },
   sale: {
     name: {
@@ -66,10 +87,18 @@ module.exports = {
         maxAmount: 30,
       },
     },
+    eid: {
+      size: 8,
+      charset: lowercaseLetters,
+    },
   },
   saleInstance: {
     quantity: {
       max: 10000,
+    },
+    eid: {
+      size: 6,
+      charset: digits,
     },
   },
 };

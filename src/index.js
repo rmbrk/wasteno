@@ -1,4 +1,9 @@
 require('dotenv').config();
 
-require('./database');
-require('./web-interface');
+const db = require('./db');
+
+module.exports = {
+  ready: db.ready.then(() => {
+    return require('./web').ready; 
+  }),
+};

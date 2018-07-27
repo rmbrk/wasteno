@@ -6,17 +6,21 @@ services:
     volumes:
       - ./src:/src
       - ./.env:/src/.env
+      - ./test:/test
+      - ./scripts:/scripts
       - ${FRONTEND_PATH}:/public
     ports: 
       - 3000:${PORT}
     links:
-      - pgdb
+      - db
+      - testdb
     depends_on:
-      - pgdb
-  pgdb:
+      - db
+      - testdb
+  db:
     image: postgres
     restart: always
-    container_name: wasteno-mongodb
+    container_name: wasteno-db
     environment:
       - POSTGRES_USER=${DB_USERNAME}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -24,3 +28,12 @@ services:
       - POSTGRES_DB=${DB_NAME}
     volumes:
       - ./db-data:/data
+  testdb:
+    image: postgres
+    restart: always
+    container_name: wasteno-testdb
+    environment:
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - PGDATA=/data/db
+      - POSTGRES_DB=${DB_NAME}
