@@ -83,7 +83,7 @@ const validateSaleInstance = (saleInstance) => {
     eid,
     quantity,
     expiry,
-    locationIndex,
+    locationName,
   } = saleInstance;
 
   if (quantity) {
@@ -103,12 +103,16 @@ const validateSaleInstance = (saleInstance) => {
     return errors.ale_instance_expiry_passed;
   }
 
-  if (!saleInstance.hasOwnProperty('locationIndex')) {
-    return errors.sale_instance_location_index_missing;
-  }
-
-  if (!isInt(locationIndex)) {
-    return errors.sale_instance_location_index_invalid;
+  const locationNameErr = commonValidators.validateString(locationName, {
+    exists: true,
+    config: config.location.name,
+    missingErr: errors.sale_instance_location_name_missing,
+    shortErr: errors.sale_instance_location_name_length_short,
+    longErr: errors.sale_instance_location_name_length_long,
+    charsetErr: errors.sale_instance_location_name_out_of_charset,
+  });
+  if (locationNameErr) {
+    return locationNameErr; 
   }
 
   return commonValidators.validateEid(eid, 'instance');

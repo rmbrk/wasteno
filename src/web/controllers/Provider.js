@@ -170,7 +170,7 @@ module.exports = {
         }
 
         const locationIds = await req.prov
-          .fetchLocationIdsByIndices(extract(saleInstances, 'locationIndex'));
+          .fetchLocationIdsByNames(extract(saleInstances, 'locationName'));
 
         const emptyLocationIdsIndices = findAllIndices(
           locationIds,
@@ -178,7 +178,7 @@ module.exports = {
         );
         if (emptyLocationIdsIndices.length > 0) {
           sendError(res, {
-            error: errors.sale_instance_location_index_invalid,
+            error: errors.sale_instance_location_name_invalid,
             details: {
               indices: emptyLocationIdsIndices,
             },

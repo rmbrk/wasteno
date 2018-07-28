@@ -16,6 +16,11 @@ const alphanumExtendedSpecialCharset = `${alphanum}${extendedSpecialCharset}`;
  *
  */
 
+const commonName = {
+  minSize: 4,
+  maxSize: 30,
+  charset: alphanumExtendedSpecialCharset,
+};
 module.exports = {
   common: {
     username: {
@@ -23,11 +28,7 @@ module.exports = {
       maxSize: 30,
       charset: alphanumBaseSpecialCharset,
     },
-    name: {
-      minSize: 4,
-      maxSize: 30,
-      charset: alphanumExtendedSpecialCharset,
-    },
+    name: commonName,
     password: {
       minSize: 8,
       maxSize: 100,
@@ -57,6 +58,9 @@ module.exports = {
       minSize: 6,
       maxSize: 150,
       charset: alphanumExtendedSpecialCharset,
+    },
+    name: {
+      ...commonName, 
     },
   },
   moderator: {

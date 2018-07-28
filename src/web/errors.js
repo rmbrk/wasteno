@@ -66,6 +66,9 @@ module.exports = {
   sale_instance_eid_not_exists: 'sale instance eid doesn\'t exist',
   sale_instance_eid_missing: 'sale instance eid missing',
   sale_instance_parent_eid_not_exists: 'sale instance parent eid doesn\'t exist',
-  sale_instance_location_index_missing: 'sale instance location index missing',
-  sale_instance_location_index_invalid: 'sale instance location index is invalid',
+  sale_instance_location_name_missing: 'sale instance location name missing',
+  sale_instance_location_name_invalid: 'sale instance location index is invalid',
+  sale_instance_location_name_length_short: 'sale instance location index is too short',
+  sale_instance_location_name_length_long: 'sale instance location index is too long',
+  sale_instance_location_name_out_of_charset: 'sale instance location index is out of charset',
 };

@@ -41,7 +41,7 @@ const methods = {
       },
       async verify({ modMid }) {
         return this.fetch((model) => {
-          this.set('verifiedBy',  modMid);
+          this.set('verifiedBy', modMid);
           return this.save();
         });
       },
@@ -62,7 +62,6 @@ const methods = {
             address,
             lon,
             lat,
-            index,
           } = location;
 
           if (isMain) {
@@ -77,7 +76,6 @@ const methods = {
             lat,
             name,
             address,
-            index,
             parent: this.id,
           };
         });
@@ -90,33 +88,27 @@ const methods = {
         return new models[this.config.locationCollection](usableLocations)
           .invokeThen('save');
       },
-      locationsByIndices(indices) {
-        const uniqueIndices = getUnique(indices);
+      locationsByNames(names) {
+        const uniqueNames = getUnique(names);
 
         return new models[this.config.locationModel]({ parent: this.id })
-          .query(q => q.whereIn('index', uniqueIndices));
+          .query(q => q.whereIn('name', uniqueNames));
       },
-      fetchLocationIdsByIndices(indices) {
-        const uniqueIndices = getUnique(indices);
-        return this.locationsByIndices(uniqueIndices)
-          .query(q => q.select('id', 'index'))
+      fetchLocationIdsByNames(names) {
+        const uniqueNames = getUnique(names);
+        return this.locationsByNames(uniqueNames)
+          .query(q => q.select('id', 'name'))
           .fetchAll()
           .then(extractor('models'))
           .then(mapExtract('attributes'))
-          .then(genGroupByProperties('id', 'index'))
+          .then(genGroupByProperties('id', 'name'))
           // items coming back might not be in the right order
-          // so to mirror the original array you need to
-          // compare multiple indices.
-          // I'm so not sure how to make this more readable
-          .then(({ id: ids, index: dbIndices }) =>
-            indices.map((localIndex) => {
-              const localLookupIndex = uniqueIndices.indexOf(localIndex);
+          .then(({ id: ids, name: dbNames }) =>
+            names.map((name) => {
+              const dbIndex = dbNames.indexOf(name);
 
-              const dbLookupIndex = dbIndices.indexOf(
-                uniqueIndices[localLookupIndex]);
-
-              return dbLookupIndex > -1
-                ? ids[dbLookupIndex]
+              return dbIndex > -1
+                ? ids[dbIndex]
                 : false;
             }));
       },
@@ -134,7 +126,6 @@ const types = {
       address: [['string']],
       lon: [['decimal']],
       lat: [['decimal']],
-      index: [['integer']],
     },
     contact: {
       name: [['string']],

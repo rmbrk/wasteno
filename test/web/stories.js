@@ -97,15 +97,14 @@ module.exports = start('stories', async () => {
       name: genString('%%%%%%% %%% %%'),
       address: genString('### %%%%%%% %%%% %%%'),
       isMain: true,
-    }
-    const locationRes = await request('provider/locations/add', {
+    };
+    assertRes('create location', await request('provider/locations/add', {
       locations: [pluck(locationInfo, [
         'name',
         'address',
         'isMain',
       ])],
-    });
-    assertRes('create location', locationRes);
+    }));
 
     const saleInfo = {
       name: genString('%%%%%%%% %%%%'),
@@ -123,7 +122,7 @@ module.exports = start('stories', async () => {
     const saleInstanceInfo = {
       eid: saleInfo.eid + genString('######'),
       expiry: Date.now() + 2 * 86400 * 1000,
-      locationIndex: locationRes.data.indices[0],
+      locationName: locationInfo.name,
     };
     assertRes('add sale instance', await request(
       'sales/instances/add',
@@ -131,7 +130,7 @@ module.exports = start('stories', async () => {
         saleInstances: [pluck(saleInstanceInfo, [
           'eid',
           'expiry',
-          'locationIndex',
+          'locationName',
         ])],
       },
     ));

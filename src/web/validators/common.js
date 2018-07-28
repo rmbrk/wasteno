@@ -211,7 +211,10 @@ const validateLocation = (location) => {
     return addressError;
   }
 
-  const nameError = validateName(name, { exists: true });
+  const nameError = validateName(name, {
+    exists: true,
+    config: config.location.name
+  });
   if (nameError) {
     return nameError;
   }
