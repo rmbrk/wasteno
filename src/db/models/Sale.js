@@ -1,13 +1,15 @@
 const { types, methods } = require('./common.js');
+const config = require('./../../config.js');
 
 module.exports = {
   schema: {
+    ...types.group.price,
     eid: types.eid,
     name: 'string',
     description: 'string',
     inStock: 'boolean',
     photoUrl: 'string',
-    category: [['enum', ['FMCG', 'durable']]],
+    category: [['enum', config.sale.categories]],
   },
   references: {
     parent: 'Provider',

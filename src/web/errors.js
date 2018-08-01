@@ -38,6 +38,7 @@ module.exports = {
   common_address_length_short: 'address is too short',
   common_address_length_long: 'address is too long',
   common_location_multiple_main: 'main location set multiple times',
+  common_location_name_exists: 'location name already exists',
   common_eid_missing: 'eid missing',
   common_eid_length_short: 'eid too short',
   common_eid_length_long: 'eid too long',

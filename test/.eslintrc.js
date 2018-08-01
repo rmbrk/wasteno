@@ -10,6 +10,9 @@ const globals = [
   'assertSamples',
   'assertRes',
   'pluck',
+  'mapPluck',
+  'getTimes',
+  'getRandomItem',
 ];
 
 module.exports = {

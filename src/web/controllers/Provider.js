@@ -39,8 +39,8 @@ module.exports = {
   getSales(req, res) {
     const {
       username,
-      amount,
-      offset,
+      amount = config.sale.pagination.items.maxAmount,
+      offset = 0,
     } = req.body;
 
     new Provider({ username })
@@ -58,7 +58,7 @@ module.exports = {
         }
 
         ok(res, {
-          sales: prov.sales,
+          sales: extract(prov.relations.sales.models, 'attributes'),
         });
       })
       .catch(genDbError(res));

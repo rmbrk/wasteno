@@ -133,26 +133,41 @@ post /provider/locations/add
   > addLocations
 
 # SALE
-post /sales
+post /sales/by-provider
 - provider
-  . salePagination username
+  . username
+- sale
+  . salePagination
+- provider
   > getSales
 
 post /sales/add
 - provider
   . loggedIn
+- sale
   . sales
+- provider
   > addSales
+
+post /sales/search
+- sale
+  . search
+  > search
 
 post /sales/instances
 - provider
-  . username salePagination saleEid
+  . username
+- sale
+  . instancePagination saleEid
+- provider
   > getSaleInstances
 
 post /sales/instances/add
 - provider
   . loggedIn
-  . saleInstances
+- sale
+  . instances
+- provider
   > addSaleInstances
 
 # TRANSPORTER

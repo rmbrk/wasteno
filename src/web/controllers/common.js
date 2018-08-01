@@ -169,19 +169,9 @@ module.exports = {
               return;
             }
 
-            const indices = locations.map((location) => {
-              const nextIndex = user.get('locationIndexCount') + 1;
-              user.set('locationIndexCount', nextIndex);
-              location.index = nextIndex;
-              return nextIndex;
-            });
-
-            // possible race condition
-            await user.save();
-
             return req[this.config.sessionPrefix]
               .addLocations({ locations })
-              .then(genOk(res, { indices }));
+              .then(genOk(res));
           })
           .catch(genDbError(res));
       },

@@ -1,9 +1,9 @@
 // Update with your config settings.
 
-let poolNum = 0;
+let poolNum = 1;
 const pool = {
   afterCreate(conn, cb) {
-    console.log(`${poolNum} connected to db: ${conn.readyForQuery}`);
+    console.log(`pool #${poolNum} connected to db: ${conn.readyForQuery}`);
     ++poolNum;
     cb(null, conn);
   },

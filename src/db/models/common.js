@@ -1,5 +1,7 @@
 const bcrypt = require('bcrypt');
 
+const config = require('./../../config.js');
+
 const { models } = require('./helper.js');
 
 const {
@@ -82,7 +84,12 @@ const methods = {
 
         if (isAnyMain) {
           await new models[this.config.locationModel]({ parent: this.id, isMain: true })
-            .save({ isMain: false });
+            .fetch()
+            .then((possiblePrevMain) => {
+              if (possiblePrevMain) {
+                possiblePrevMain.save({ isMain: false });
+              }
+            })
         }
 
         return new models[this.config.locationCollection](usableLocations)
@@ -140,7 +147,7 @@ const types = {
       // 2 fractional digits
       // 10 total digits (8-2=6: up to 999,999.99, <1M)
       priceAmount: [['decimal', 8, 2]],
-      priceCurrency: [['enum', ['eur', 'czk', 'gbp', 'usd']]],
+      priceCurrency: [['enum', config.price.currencies]],
     },
   },
 };

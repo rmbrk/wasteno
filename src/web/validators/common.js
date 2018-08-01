@@ -370,6 +370,24 @@ const validateEid = (eid, type, opts = {}) => {
   }
 };
 
+const validateSearch = (search, opts = {}) => {
+  const {
+    offset,
+    amount,
+    term,
+  } = search;
+
+  const paginationError = validatePagination(offset, amount, opts.paginationConfig);
+  if (paginationError) {
+    return paginationError;
+  }
+
+  const termError = validateString(term, opts.termConfig);
+  if (termError) {
+    return termError;
+  }
+}
+
 module.exports = {
   validatorFns: {
     validateString,
@@ -384,6 +402,28 @@ module.exports = {
     validateLocation,
     validatePagination,
     validateEid,
+    validateSearch,
+  },
+  generators: {
+    pagination: (paginationConfig) => function (req, res, next) {
+      const {
+        offset,
+        amount,
+      } = req.body;
+
+      const paginationError =
+        validatePagination(offset, amount, paginationConfig);
+
+      if (paginationError) {
+        sendError(res, {
+          error: paginationError,
+          details: paginationConfig,
+        });
+        return;
+      }
+
+      next();
+    },
   },
   group: {
     user: {

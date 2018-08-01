@@ -2,7 +2,6 @@ const { types } = require('./common.js');
 
 module.exports = {
   schema: {
-    ...types.group.price,
     eid: types.eid,
     quantity: [['integer']],
     expiry: [['bigInteger']], // MS

@@ -10,6 +10,8 @@ const dbActions = [];
 if (process.env.NODE_ENV === 'test' || true) {
   dbActions.push(() => knex.raw(`drop owned by ${process.env.DB_USERNAME}`));
 }
+// likeness score
+dbActions.push(() => knex.raw('CREATE EXTENSION pg_trgm'))
 
 const processedTableNames = [];
 const toProcessTableNames = ['Moderator'];

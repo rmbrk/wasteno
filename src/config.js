@@ -95,6 +95,12 @@ module.exports = {
       size: 8,
       charset: lowercaseLetters,
     },
+    categories: ['FMCG', 'durable'],
+    searchTerm: {
+      minSize: 3,
+      maxSize: 200,
+      charset: alphanumExtendedSpecialCharset,
+    }
   },
   saleInstance: {
     quantity: {
@@ -104,5 +110,8 @@ module.exports = {
       size: 6,
       charset: digits,
     },
+  },
+  price: {
+    currencies: ['eur', 'czk', 'gbp', 'usd'],
   },
 };

@@ -5,7 +5,5 @@ module.exports = start('web', async () => {
     require(modulePath);
   });
 
-  await require('./stories.js');
-
   await require('./controllers');
 });

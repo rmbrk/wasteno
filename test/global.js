@@ -10,6 +10,7 @@ global.write = (text, newline = true, trail = false) => {
     + (trail ? '\n' : ''));
 };
 
+global.getTimes = (n, fn) => Array(n).fill().map(fn);
 global.genString = template => template.split('')
   .reduce((acc, char) => {
     switch (char) {
@@ -31,6 +32,9 @@ global.genString = template => template.split('')
 
 global.pluck = (obj, props) =>
   props.reduce((acc, prop) => ({ ...acc, [prop]: obj[prop] }), {});
+global.mapPluck = (arr, props) => arr.map((obj) => pluck(obj, props));
+
+global.getRandomItem = (arr) => arr[Math.random() * arr.length |0];
 
 global.wait = ms => new Promise((resolve) => {
   setTimeout(resolve, ms);
@@ -109,6 +113,7 @@ global.assert = require('assert');
 const errors = [];
 const testStack = [];
 global.start = async (desc, cb, opts = {}) => {
+  const prevKeepCookie = global.keepCookie;
   const {
     keepCookie = true,
   } = opts;
@@ -128,7 +133,7 @@ global.start = async (desc, cb, opts = {}) => {
       error: e,
     });
   }
-  if (keepCookie) {
+  if (keepCookie && !prevKeepCookie) {
     cookieJar = baseCookie;
     global.keepCookie = false;
   }
@@ -137,11 +142,20 @@ global.start = async (desc, cb, opts = {}) => {
 };
 
 global.getStats = () => {
-  write('\n------\n');
+  const now = Date.now();
+  const allTime = now - initTime;
+  const envTime = setupTime - initTime;
+  const testTime = now - setupTime;
+
+  const showTime = ms => `${(ms / 1000).toFixed(1)}s`;
+  const timeStr = `(a ${showTime(allTime)}) (t ${showTime(testTime)}) (e ${showTime(envTime)})`;
+
+  write(`\n${'-'.repeat(timeStr.length)}\n${timeStr}\n`);
   if (errors.length > 0) {
     write(`ERROR: ${errors.length} test${errors.length > 1 ? 's' : ''} failed`, true, true);
     errors.forEach(({ stack, error }) => {
-      write(`${stack.join(' -> ')}: ${error.message}`, true, true);
+      const errorMsg = error.message || error;
+      write(`${stack.join(' -> ')}: ${errorMsg}`, true, true);
     });
     process.exit(1);
   } else {
@@ -200,6 +214,8 @@ global.assertRes = (reason, res, opts = {}) => {
     console.error(attemptStringify(res));
   }
   assert.equal(res.success, true, `${reason}: ${res.error}\n${attemptStringify(res)}`);
+
+  return res;
 };
 process.on('exit', () => {
   global.getStats();
@@ -207,7 +223,10 @@ process.on('exit', () => {
 
 write('waiting for env');
 
-require('./../src').ready.then(() => {
+const initTime = Date.now();
+let setupTime = initTime;
+require('./../src').ready.then(async () => {
+  setupTime = Date.now();
   write('starting tests');
-  require(`/test/${process.env.TEST_PATH}`);
+  await require(`/test/${process.env.TEST_PATH}`);
 });

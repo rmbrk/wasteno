@@ -32,7 +32,7 @@ module.exports = {
   associations: {
     hasMany: {
       locations: 'ProviderLocation.parent',
-      sales: 'Sale.provider',
+      sales: 'Sale.parent',
       orders: 'Order.provider',
     },
     belongsTo: {
