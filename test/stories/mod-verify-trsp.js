@@ -7,4 +7,13 @@ module.exports = async () => {
       'username'
     ]),
   ));
+
+  const checkRes = assertRes('check verification', await request(
+    'transporter/by-username',
+    pluck(data.baseTrsp, [
+      'username',
+    ]),
+  ));
+
+  assert.ok(checkRes.data.transporter.verifiedBy, 'not verified');
 }

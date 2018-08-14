@@ -18,8 +18,7 @@ const {
 const common = require('./common.js');
 const { validatorFns: commonValidators } = common;
 
-const validateLocations = (locations) => {
-  if (!locations) {
+const validateLocations = (locations) => { if (!locations) {
     return errors.common_object_missing;
   }
 
@@ -42,4 +41,14 @@ module.exports = {
   config: validationConfig,
   ...common.group.user,
   ...common.group.locationOwner,
+
+  eid(req, res, next) {
+    handleRequestValidation(req, res, next, [{
+      fn: eid => commonValidators.validateBuyerEid(eid, 'receiver'),
+      property: 'eid',
+      details: {
+        config: config.provider.eid,
+      },
+    }]);
+  },
 };

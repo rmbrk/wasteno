@@ -1,4 +1,4 @@
-module.exports = {
+const errors = {
   bad_json: 'bad json',
   common_auth_expired: 'login expired',
   common_name_missing: 'name missing',
@@ -30,6 +30,7 @@ module.exports = {
   common_login_invalid: 'password or username not valid',
   common_login_before_ban_end: 'tried to log in unsuccesfully too many times',
   common_login_unexpected: 'your credentials might have changed',
+  common_not_verified: 'your user was not verified',
   common_lon_invalid: 'longitude is invalid',
   common_lat_invalid: 'latitude is invalid',
   common_address_missing: 'address missing',
@@ -47,6 +48,10 @@ module.exports = {
   common_eid_portion_length_short: 'eid portion too short',
   common_eid_portion_length_long: 'eid portion too long',
   common_eid_portion_out_of_charset: 'eid portion contains characters not in the allowed charset',
+  common_offset_invalid: 'offset is invalid',
+  common_amount_invalid: 'amount is invalid',
+  common_amount_size_big: 'amount is too big',
+  common_amount_size_zero: 'amount cannot be zero',
 
   sale_description_missing: 'description missing',
   sale_description_length_short: 'description too short',
@@ -54,8 +59,12 @@ module.exports = {
   sale_description_out_of_charset: 'description contains characters not in the allowed charset',
 
   receiver_not_exists: 'receiver doesn\'t exist',
+  receiver_too_many_orders: 'receiver has too many orders',
   provider_not_exists: 'provider doesn\'t exist',
   provider_eid_not_matching: 'provider eid does not match',
+  order_eid_not_exists: 'order eid doesn\'t exist',
+  order_eid_not_matching_receiver: 'order eid doesn\'t match receiver',
+  location_eid_not_exists: 'location eid doesn\'t exist',
   sale_eid_exists: 'sale eid already exists',
   sale_eid_not_exists: 'sale eid doesn\'t exist',
   sale_eid_missing: 'sale eid missing',
@@ -72,4 +81,20 @@ module.exports = {
   sale_instance_location_name_length_short: 'sale instance location index is too short',
   sale_instance_location_name_length_long: 'sale instance location index is too long',
   sale_instance_location_name_out_of_charset: 'sale instance location index is out of charset',
+  sale_search_term_missing: 'sale search term missing',
+  sale_search_term_length_long: 'sale search term is too long',
+  sale_search_term_length_short: 'sale search term is too short',
+  sale_search_term_out_of_charset: 'sale search term is out of charset',
+
+  unexpected: 'unexpected error. Contact owners',
 };
+
+module.exports = new Proxy(errors, {
+  get(obj, accessor) {
+    if (obj.hasOwnProperty(accessor)) {
+      return obj[accessor];
+    }
+    console.error(`UNACCOUNTED ERROR ACCESSOR: ${accessor}`);
+    return accessor;
+  },
+});

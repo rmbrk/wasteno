@@ -1,17 +1,21 @@
 const { types } = require('./common.js');
 
+const { models } = require('./helper.js');
+
 module.exports = {
   schema: {
     ...types.group.price,
+    eid: types.eid,
 
-    formed: 'boolean',
-    formedAt: 'date',
+    // receiver
+    paid: types.date,
 
-    paid: 'date',
-    accepted: 'date',
-    pickedUp: 'date',
-    underWay: 'date',
-    arrived: 'date'
+    // transporter
+    accepted: types.date,
+    pickedUp: types.date,
+    arrived: types.date,
+
+    completed: 'boolean',
   },
   references: {
     transporter: 'Transporter',
@@ -19,7 +23,7 @@ module.exports = {
   },
   associations: {
     hasMany: {
-      orderedSaleInstances: 'OrderedSaleInstance.order',
+      orderedSales: 'OrderedSale.order',
     },
     belongsTo: {
       transporter: 'Transporter',
@@ -27,6 +31,19 @@ module.exports = {
     },
     belongsToMany: {
       providerLocations: 'ProviderLocation',
+    },
+  },
+  methods: {
+    addItems(items) {
+      return new models.OrderedSale.Collection(items.map(item => ({
+        ...item,
+        order: this.id,
+      })))
+        .invokeThen('save');
+    },
+    pay() {
+      this.set('paid', Date.now());
+      return this.save();
     }
   },
 };

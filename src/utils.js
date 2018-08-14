@@ -56,6 +56,11 @@ const groupByProperties = (arr, ...properties) => {
 };
 const genGroupByProperties = (...properties) => arr => groupByProperties(arr, ...properties);
 
+const remap = (original, transformed, identity) =>
+  original.map(item => 
+    transformed.find(element =>
+      identity(item, element)));
+
 const pluck = (obj, attributes, defaultValue = undefined) =>
   attributes.reduce((acc, attribute) =>
     ({
@@ -91,7 +96,7 @@ const prefixProxy = (prefix, base, opts = {}) => {
   });
 };
 
-const dissectEid = (eid) => {
+const dissectSellerEid = (eid) => {
   const provSize = config.provider.eid.size;
   const saleSize = config.sale.eid.size;
   const instSize = config.saleInstance.eid.size;
@@ -108,6 +113,25 @@ const dissectEid = (eid) => {
     partialSale: containsSale && eid.substr(provSize, saleSize),
     instance: containsInst && eid.substr(0, fullInstSize),
     partialInstance: containsInst && eid.substr(fullSaleSize, instSize),
+  };
+};
+const dissectBuyerEid = (eid) => {
+  const recSize = config.receiver.eid.size;
+  const locSize = config.receiver.location.eid.size;
+  const ordSize = config.order.eid.size;
+
+  const fullLocSize = recSize + locSize;
+  const fullOrdSize = fullLocSize + ordSize;
+
+  const containsLoc = eid.length >= fullLocSize;
+  const containsOrd = eid.length >= fullOrdSize;
+
+  return {
+    receiver: eid.substr(0, recSize),
+    location: containsLoc && eid.substr(0, fullLocSize),
+    partialLocation: containsLoc && eid.substr(recSize, locSize),
+    order: containsOrd && eid.substr(0, fullOrdSize),
+    partialOrder: containsOrd && eid.substr(fullLocSize, ordSize),
   };
 };
 
@@ -127,6 +151,7 @@ module.exports = {
   findAllIndices,
   groupByProperties,
   genGroupByProperties,
+  remap,
 
   pluck,
 
@@ -134,7 +159,8 @@ module.exports = {
   pascalToCamel,
 
   prefixProxy,
-  dissectEid,
+  dissectSellerEid,
+  dissectBuyerEid,
 
   isInt,
   isInRange,

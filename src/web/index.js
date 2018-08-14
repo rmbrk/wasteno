@@ -8,6 +8,7 @@ const controllers = require('./controllers');
 const errors = require('./errors.js');
 const {
   sendError,
+  dbError,
 } = require('./helper.js');
 
 const app = express();
@@ -31,7 +32,15 @@ app.use((req, res, next) => {
 
 const apiRouter = express.Router();
 for (const { method, path, consumers } of routes) {
-  apiRouter[method](path, ...consumers);
+  apiRouter[method](path, ...consumers.map((consumer) => {
+    return async (req, res, next) => {
+      try {
+        await consumer(req, res, next);
+      } catch (e) {
+        dbError(res, e);
+      }
+    }
+  }));
 }
 
 app.use('/api', apiRouter);

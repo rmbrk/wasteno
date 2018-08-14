@@ -42,10 +42,8 @@ const methods = {
         return model;
       },
       async verify({ modMid }) {
-        return this.fetch((model) => {
-          this.set('verifiedBy', modMid);
-          return this.save();
-        });
+        return this.fetch()
+          .then(model => model.save('verifiedBy', modMid));
       },
     },
     locationOwner: {
@@ -70,7 +68,15 @@ const methods = {
             isAnyMain = true;
           }
 
+          const additionalFields = this.config.additionalLocationFields
+            ? this.config.additionalLocationFields.reduce((acc, field) =>
+              Object.assign(acc, {
+                [field]: location[field],
+              }), {})
+            : {};
+
           return {
+            ...additionalFields,
             isMain,
             phone,
             email,
@@ -89,7 +95,7 @@ const methods = {
               if (possiblePrevMain) {
                 possiblePrevMain.save({ isMain: false });
               }
-            })
+            });
         }
 
         return new models[this.config.locationCollection](usableLocations)
@@ -119,12 +125,21 @@ const methods = {
                 : false;
             }));
       },
+      fetchLocationIdByEid(eid) {
+        return new models.ReceiverLocation({ parent: this.id })
+          .query(q => q.where('eid', '=', eid).select('id'))
+          .fetch()
+          .then(loc => (loc
+            ? loc.attributes.id
+            : null));
+      },
     },
   },
 };
 
 const types = {
   eid: [['string'], 'unique'],
+  date: [['bigInteger']], // MS
   group: {
     locationOwner: {
       locationIndexCount: [['integer']],
@@ -147,7 +162,7 @@ const types = {
       // 2 fractional digits
       // 10 total digits (8-2=6: up to 999,999.99, <1M)
       priceAmount: [['decimal', 8, 2]],
-      priceCurrency: [['enum', config.price.currencies]],
+      // priceCurrency: [['enum', config.price.currencies]],
     },
   },
 };

@@ -33,14 +33,16 @@ const genSale = prov => ({
   description: genString('%%%%%%% % %%% %%%%%% %%% %%%% %%%%%% %%%%'),
   eid: prov.eid + genString('%%%%%%%%'),
   category: getRandomItem(config.sale.categories),
+  priceAmount: Math.random() * 20,
+  priceCurrency: 'eur',
 });
 const baseSale = genSale(baseProv);
 const additionalBaseProvSales = getTimes(20, () => genSale(baseProv));
 const baseProvSales = [baseSale, ...additionalBaseProvSales];
 
-const getRandomValidSaleExpiry = () => Math.floor(Date.now() + (2 + Math.random() * 3) * 86400 * 1000);
+const genValidSaleExpiry = () => Math.floor(Date.now() + (2 + Math.random() * 3) * 86400 * 1000);
 const genSaleInstance =
-  (sale, location, expiry = getRandomValidSaleExpiry()) => ({
+  (sale, location, expiry = genValidSaleExpiry()) => ({
     eid: sale.eid + genString('######'),
     expiry,
     locationName: location.name,
@@ -54,31 +56,69 @@ const baseProvSaleInstances = [baseSaleInstance, ...additionalSaleInstances];
 
 const genRec = () => ({
   ...genUser('receiver'),
+  eid: genString('&&&'),
 });
 const baseRec = genRec();
 
+const genRecLocation = (rec, isMain) => ({
+  ...genLocation(isMain),
+  eid: rec.eid + genString('%%%%%%%%'),
+});
+const baseRecLocation = genRecLocation(baseRec, true);
+const additionalBaseRecLocations = getTimes(20, () => genRecLocation(baseRec));
+const baseRecLocations = [baseRecLocation, ...additionalBaseRecLocations];
+
 const genTrsp = () => ({
   ...genUser('transporter'),
+  lon: 17.1,
+  lat: 48.1,
 });
 const baseTrsp = genTrsp();
+
+const genMaxExpiry = () =>
+  genValidSaleExpiry() + (2 * 86400 * 1000);
 
 const genSaleSearch = () => {
   const sale = getRandomItem(baseProvSales);
 
   return {
-    offset: 0,//Math.floor(Math.random() * 20),
+    offset: 0, // Math.floor(Math.random() * 20),
     amount: Math.floor(Math.random() * config.sale.pagination.items.maxAmount),
 
-    term: getRandomItem(sale.name.split(' ')),
+    term: sale.name.split(' ')[1],
     maxPrice: Math.random() * 2000,
-    maxExpiry: Date.now() + Math.floor((2 + Math.random() * 4) * 86400 * 1000),
+    maxExpiry: genMaxExpiry(),
     minAmount: Math.floor(Math.random() * 10),
     categories: sale.category,
   };
-}
+};
 const baseSaleSearch = genSaleSearch();
 const additionalSaleSearches = getTimes(20, genSaleSearch);
 const saleSearches = [baseSaleSearch, ...additionalSaleSearches];
+
+let orderIncrement = 0;
+const genOrder = (rec = baseRec, loc = getRandomItem(baseRecLocations)) => ({
+  items: getTimes(5, () => getRandomItem(baseProvSales))
+    .map(sale => ({
+      saleEid: sale.eid,
+      maxExpiry: genMaxExpiry(),
+      amount: Math.floor(Math.random() * 3),
+    })),
+  eid: loc.eid +
+      (++orderIncrement)
+        .toString().padStart(config.order.eid.size, '0'),
+});
+const allOrders = getTimes(20, () => genOrder());
+const [baseOrder, ...additionalOrders] = allOrders;
+
+const genConvenienceOrderSearch = () => ({
+  maxDist: 300 + 200 * Math.random(),
+  last: Math.random() < 0.5,
+});
+const allConvenienceOrderSearches =
+  getTimes(20, () => genConvenienceOrderSearch());
+const [baseConvenienceOrderSearch, ...additionalConvenienceOrderSearches] =
+  allConvenienceOrderSearches;
 
 module.exports = {
   config,
@@ -102,9 +142,21 @@ module.exports = {
 
   baseRec,
 
+  baseRecLocation,
+  additionalBaseRecLocations,
+  baseRecLocations,
+
   baseTrsp,
 
   baseSaleSearch,
   additionalSaleSearches,
   saleSearches,
+
+  baseOrder,
+  additionalOrders,
+  allOrders,
+
+  baseConvenienceOrderSearch,
+  additionalConvenienceOrderSearches,
+  allConvenienceOrderSearches,
 };

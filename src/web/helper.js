@@ -25,7 +25,7 @@ const dbError = (res, err) => {
     error: errors.unexpected,
     status: 500,
   });
-  console.error(err);
+  console.error('DB ERROR: ', err);
 };
 const genDbError = res => err => dbError(res, err);
 

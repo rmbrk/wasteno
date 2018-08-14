@@ -50,6 +50,7 @@ const controllerConfig = {
   model: Moderator,
   sessionPrefix: 'mod',
   errorPrefix: 'moderator',
+  dataName: 'moderator',
 };
 module.exports = {
   config: controllerConfig,

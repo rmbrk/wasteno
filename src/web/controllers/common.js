@@ -119,6 +119,16 @@ module.exports = {
           })
           .catch(genDbError(res));
       },
+      getByUsername(req, res) {
+        const { username } = req.body;
+
+        new this.config.model({ username })
+          .fetch()
+          .then((model) => {
+            ok(res, { [this.config.dataName]: model });
+          })
+          .catch(genDbError(res));
+      }
     },
     locationOwner: {
       getLocations(req, res) {
@@ -158,7 +168,7 @@ module.exports = {
         new this.config.locationModel({ parent: user.id })
           .query(q => q.whereIn('name', locNames))
           .fetch()
-          .then(async (loc) => {
+          .then((loc) => {
             if (loc) {
               sendError(res, {
                 error: errors.common_location_name_exists,

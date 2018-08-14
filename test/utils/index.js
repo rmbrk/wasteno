@@ -141,8 +141,8 @@ module.exports = start('utils', async () => {
     }
   });
 
-  await start('dissectEid(eid)', async () => {
-    assertSamples(utils.dissectEid, [
+  await start('dissectSellerEid(eid)', async () => {
+    assertSamples(utils.dissectSellerEid, [
       {
         arg: 'ABC',
         expected: {
@@ -177,11 +177,65 @@ module.exports = start('utils', async () => {
     ], 'deepEqual');
   });
 
-  assertSamples(utils.findAllIndices, [
-    {
-      args: [[1, 2, 3, 4, 5, 6], x => x % 2 === 0],
-      expected: [1, 3, 5],
-      message: 'indices of even numbers',
-    }, 
-  ], 'deepEqual');
+  await start('dissectBuyerEid(eid)', async () => {
+    assertSamples(utils.dissectBuyerEid, [
+      {
+        arg: 'ABC',
+        expected: {
+          receiver: 'ABC',
+          location: false,
+          partialLocation: false,
+          order: false,
+          partialOrder: false,
+        },
+        message: 'correct provider',
+      }, {
+        arg: 'ABCabcdefgh',
+        expected: {
+          receiver: 'ABC',
+          location: 'ABCabcdefgh',
+          partialLocation: 'abcdefgh',
+          order: false,
+          partialOrder: false,
+        },
+        message: 'correct location',
+      }, {
+        arg: 'ABCabcdefgh012345',
+        expected: {
+          receiver: 'ABC',
+          location: 'ABCabcdefgh',
+          partialLocation: 'abcdefgh',
+          order: 'ABCabcdefgh012345',
+          partialOrder: '012345',
+        },
+        message: 'correct order'
+      }
+    ], 'deepEqual');
+  });
+
+  await start('findAllIndices(array, identity)', async () => {
+    assertSamples(utils.findAllIndices, [
+      {
+        args: [[1, 2, 3, 4, 5, 6], x => x % 2 === 0],
+        expected: [1, 3, 5],
+        message: 'indices of even numbers',
+      }, 
+    ], 'deepEqual');
+  });
+
+  await start('remap(original, transformation, identity)', async () => {
+    const firstArray = ['abc', 'def', 'def', 'ghi'];
+    assertSamples(utils.remap, [
+      {
+        args: [
+          firstArray,
+          utils.getUnique(firstArray).reverse().map(item => item += '-added'),
+          (item, transformed) => item.slice(0, 3) === transformed.slice(0, 3),
+        ],
+        expected: ['abc-added', 'def-added', 'def-added', 'ghi-added'],
+        isAsync: true,
+        message: 'base case',
+      }
+    ])
+  });
 });

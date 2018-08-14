@@ -23,7 +23,7 @@ module.exports = {
         })
           .save()
           .then((mod) => {
-            console.log('origin moderator created with username ', data.username);
+            console.log('origin moderator created with username:', data.username);
           });
       })
       .catch((err) => {

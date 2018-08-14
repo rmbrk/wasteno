@@ -23,7 +23,7 @@ module.exports = {
     ...types.group.contact,
     ...types.group.login,
     ...types.group.locationOwner,
-    eid: 'string',
+    eid: types.eid,
     hasPackers: [['boolean']],
   },
   references: {
@@ -65,6 +65,7 @@ module.exports = {
           photoUrl,
           category,
           eid,
+          priceAmount,
         } = sale;
 
         return {
@@ -74,6 +75,7 @@ module.exports = {
           photoUrl,
           category,
           eid,
+          priceAmount,
           parent: this.id,
         };
       });

@@ -54,7 +54,7 @@ const validateSale = (sale) => {
     return descriptionError;
   }
 
-  const eidError = commonValidators.validateEid(eid, 'sale');
+  const eidError = commonValidators.validateSellerEid(eid, 'sale');
   if (eidError) {
     return eidError;
   }
@@ -111,7 +111,7 @@ const validateSaleInstance = (saleInstance) => {
     return locationNameErr; 
   }
 
-  return commonValidators.validateEid(eid, 'instance');
+  return commonValidators.validateSellerEid(eid, 'instance');
 };
 
 const validateSaleInstances = (saleInstances) => {
@@ -155,7 +155,7 @@ module.exports = {
   },
   saleEid(req, res, next) {
     handleRequestValidation(req, res, next, [{
-      fn: saleEid => commonValidators.validateEid(saleEid, 'sale'),
+      fn: saleEid => commonValidators.validateSellerEid(saleEid, 'sale'),
       property: 'saleEid',
       details: {
         config: config.sale.eid,
@@ -176,7 +176,7 @@ module.exports = {
       paginationConfig: config.sale.pagination,
       termConfig: {
         exists: true,
-        config: config.sale.searchTerm,
+        config: config.sale.search.term,
         charsetErr: errors.sale_search_term_out_of_charset,
         missingErr: errors.sale_search_term_missing,
         longErr: errors.sale_search_term_length_long,
@@ -187,7 +187,7 @@ module.exports = {
       sendError(res, {
         error: baseError,
         details: {
-          config: config.sale.searchTerm,
+          config: config.sale,
         },
       });
     }

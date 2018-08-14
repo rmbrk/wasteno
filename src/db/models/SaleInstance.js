@@ -4,7 +4,7 @@ module.exports = {
   schema: {
     eid: types.eid,
     quantity: [['integer']],
-    expiry: [['bigInteger']], // MS
+    expiry: types.date,
   },
   references: {
     location: 'ProviderLocation',

@@ -4,7 +4,7 @@ module.exports = {
   schema: {
     ...types.group.price,
     quantity: [['integer']],
-    minExpiry: [['date']],
+    maxExpiry: types.date,
   },
   references: {
     parent: 'Sale',

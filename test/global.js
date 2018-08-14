@@ -186,7 +186,7 @@ global.assertSamples = (fn, samples, method = 'deepEqual') => {
       filterMessage = '',
     } = sample;
 
-    const result = filter(fn(...args));
+    let result = filter(fn(...args));
 
     // using try/catch to speed process, as JSON.stringify is slow
     try {
@@ -217,6 +217,9 @@ global.assertRes = (reason, res, opts = {}) => {
 
   return res;
 };
+
+const knex = require('./../src/db/bookshelf.js').knex;
+
 process.on('exit', () => {
   global.getStats();
 });

@@ -31,7 +31,7 @@ module.exports = {
 
   eid(req, res, next) {
     handleRequestValidation(req, res, next, [{
-      fn: eid => commonValidators.validateEid(eid, 'provider'),
+      fn: eid => commonValidators.validateSellerEid(eid, 'provider'),
       property: 'eid',
       details: {
         config: config.provider.eid,

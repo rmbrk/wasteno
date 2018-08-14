@@ -19,6 +19,8 @@ const stories = `
   # RECEIVER
   rec create
   rec login
+  rec add-locations
+  rec get-locations
   rec logout
 
   # TRANSPORTER
@@ -37,13 +39,14 @@ const stories = `
   rec order-sale
   rec get-own-orders
 
-  +prov login
-  prov ready-order
-  rec order-status-ready
+  rec pay-order
+  rec order-status-paid
 
   +trsp login
-  trsp select-order
-  rec order-status-selected
+  trsp send-coords
+  trsp get-convenient-orders
+  trsp accept-order
+  rec order-status-accepted
   trsp pick-order
   rec order-status-picked
   trsp drop-order
@@ -79,9 +82,9 @@ module.exports = start('stories', async () => {
       }
 
       if (exists) {
-        await start(name, () => require(storyPath)());
+        await start(name, async () => require(storyPath)());
       } else {
-        throw `no module '${storyPath}'`
+        await start(name, async () => { throw `missing story '${name}'` });
       }
     }
   }

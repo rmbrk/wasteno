@@ -1,7 +1,6 @@
 const data = require('./data.js');
 
 module.exports = async () => {
-  console.error(data.baseSaleSearch)
   const res = assertRes('search', await request(
     'sales/search',
     pluck(data.baseSaleSearch, [
@@ -15,5 +14,5 @@ module.exports = async () => {
     ]),
   ));
 
-  console.error(res.data)
+  assert.ok(res.data.sales.length > 0, 'sales are empty')
 }

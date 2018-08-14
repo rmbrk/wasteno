@@ -25,6 +25,7 @@ module.exports = {
       offset = 0,
       amount = config.sale.pagination.maxAmount,
       term,
+      eidStart,
       maxPrice,
       currency,
       maxExpiry,
@@ -33,27 +34,37 @@ module.exports = {
     } = req.body;
 
     new Sale()
+    //.query(q => q.select('* as sale'))
+      .query(q => eidStart
+        // shouldn't be a problem, as long as eidStart is validated
+        ? q.where('Sale.eid', 'like', `${eidStart}%`)
+        : q)
       .query((q) => {
         if (currency) {
           q = q
-            .where('priceCurrency', '=', currency);
+            .where('Sale.priceCurrency', '=', currency);
           if (maxPrice) {
             q = q
-              .andWhere('priceAmount', '<=', maxPrice);
+              .andWhere('Sale.priceAmount', '<=', maxPrice);
           }
         }
         return q;
       })
       .query((q) => {
         if (categories && categories.length > 0) {
-          q = q.where('category', 'in', categories);
+          q = q.where('Sale.category', 'in', categories);
         }
         return q;
       })
       .query(q => q
-        .orderByRaw('eid <-> ?', [term])
-        .orderByRaw('name <-> ?', [term])
-        .orderByRaw('description <-> ?', [term]))
+        .orderByRaw('1 * ("Sale"."name" <-> ?) + .5 * ("Sale"."description" <-> ?)', [
+          term,
+          term,
+        ]))
+      .query(q => q
+        .join('Provider', 'parent', '=', 'Provider.id')
+      )
+      .query(q => q.whereNotNull('Provider.verifiedBy'))
       .query(q => q.offset(offset).limit(amount))
       .fetchAll()
       .then((sales) => {

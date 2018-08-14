@@ -5,6 +5,8 @@ module.exports = {
     isMain: [['boolean']],
     ...types.group.contact,
     ...types.group.location,
+
+    eid: types.eid,
   },
   references: {
     parent: 'Receiver',

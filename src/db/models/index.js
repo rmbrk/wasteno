@@ -89,7 +89,8 @@ const buildTablesFromName = name => new Promise((resolve, reject) => {
         .then(resolve);
     })
     .catch((err) => {
-      console.log(`couldn't initialize table ${name}`);
+      console.error(`couldn't initialize table ${name}`);
+      console.error(err);
       process.exit(1);
     });
 });
@@ -155,6 +156,7 @@ const createModelFromName = (name, models = {}) => {
     tableName: name,
   }, statics);
 
+  models[name].Collection =
   models[collectionName] = Collection.extend({
     model: models[name],
   });

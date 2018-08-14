@@ -4,10 +4,11 @@
 # PROVIDER
 # SALE
 # TRANSPORTER
+# ORDER
 #
 #---
 #
-# MODERATOR
+# MODERATOR {
 post /moderator/login
 - moderator
   . notLoggedIn
@@ -60,10 +61,11 @@ post /moderator/verify/transporter
   . username
   > verifyTransporter
 
-# RECEIVER
+# } RECEIVER {
 post /receiver/create
 - receiver
   . name username password email phone
+  . eid
   > create
 
 post /receiver/login
@@ -77,15 +79,15 @@ post /receiver/logout
   . loggedIn
   > logout
 
-post /receiver/logout
-- receiver
-  . loggedIn
-  > logout
-
 post /receiver/delete
 - receiver
   . loggedIn
   > delete
+
+post /receiver/by-username
+- receiver
+  . username
+  > getByUsername
 
 post /receiver/locations
 - receiver
@@ -98,7 +100,34 @@ post /receiver/locations/add
   . locations
   > addLocations
 
-# PROVIDER
+post /receiver/order
+- order
+  . eid
+- receiver
+  . loggedIn verified
+  > getOrder
+
+post /receiver/order/add
+- order
+  . items
+- receiver
+  . loggedIn verified
+  > addOrder
+
+post /receiver/order/pay
+- receiver
+  . loggedIn verified
+- order
+  . eid recOwnsEid
+- receiver
+  > payOrder
+
+post /receiver/orders
+- receiver
+  . loggedIn
+  > getOrders
+
+# } PROVIDER {
 post /provider/login
 - provider
   . notLoggedIn
@@ -121,6 +150,11 @@ post /provider/delete
   . loggedIn
   > delete
 
+post /provider/by-username
+- provider
+  . username
+  > getByUsername
+
 post /provider/locations
 - provider
   . username
@@ -132,7 +166,7 @@ post /provider/locations/add
   . locations
   > addLocations
 
-# SALE
+# } SALE {
 post /sales/by-provider
 - provider
   . username
@@ -170,7 +204,7 @@ post /sales/instances/add
 - provider
   > addSaleInstances
 
-# TRANSPORTER
+# } TRANSPORTER {
 post /transporter/create
 - transporter
   . name username password email phone
@@ -186,3 +220,25 @@ post /transporter/logout
 - transporter
   . loggedIn
   > logout
+
+post /transporter/by-username
+- transporter
+  . username
+  > getByUsername
+
+post /transporter/send-coords
+- transporter
+  . loggedIn verified
+  . coords
+  > sendCoords
+
+post /transporter/order/by-convenience
+- order
+  . orderPagination
+- transporter
+  . loggedIn verified
+  . convenienceOrderSearch
+  > getOrdersByConvenience
+#
+# } ORDER {
+# }

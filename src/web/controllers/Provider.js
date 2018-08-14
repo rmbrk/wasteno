@@ -2,7 +2,7 @@ const {
   getUnique,
   extractor,
   extract,
-  dissectEid,
+  dissectSellerEid,
   findAllIndices,
 } = require('./../../utils.js');
 
@@ -10,6 +10,7 @@ const {
   Provider,
   ProviderLocation,
   Sale,
+  Order,
 } = require('./../../db/models');
 
 const {
@@ -29,6 +30,7 @@ const controllerConfig = {
   additionalUserProperties: ['eid'],
   sessionPrefix: 'prov',
   errorPrefix: 'provider',
+  dataName: 'provider',
   locationModel: ProviderLocation,
 };
 module.exports = {
@@ -69,7 +71,7 @@ module.exports = {
     } = req.body;
 
     const saleEids = extract(sales, 'eid');
-    const dissectedSaleEids = saleEids.map(dissectEid);
+    const dissectedSaleEids = saleEids.map(dissectSellerEid);
 
     const badProviderEids = dissectedSaleEids.filter(eid =>
       eid.provider !== req.prov.get('eid'));
@@ -130,73 +132,72 @@ module.exports = {
         });
       });
   },
-  addSaleInstances(req, res) {
+  async addSaleInstances(req, res) {
     const {
       saleInstances,
     } = req.body;
 
     const saleInstanceEids = extract(saleInstances, 'eid');
 
-    req.prov
-      .fetchAlreadyExistingSaleInstanceEids(saleInstanceEids)
-      .then(async (dbInstanceEids) => {
-        if (dbInstanceEids.length > 0) {
-          sendError(res, {
-            error: errors.sale_instance_eid_exists,
-            details: {
-              indices: dbInstanceEids.map(eid =>
-                saleInstanceEids.indexOf(eid)),
-            },
-          });
-          return;
-        }
+    const dbInstanceEids = await req.prov
+      .fetchAlreadyExistingSaleInstanceEids(saleInstanceEids);
 
-        const saleEids = saleInstanceEids
-          .map(dissectEid)
-          .map(extractor('sale'));
+    if (dbInstanceEids.length > 0) {
+      sendError(res, {
+        error: errors.sale_instance_eid_exists,
+        details: {
+          indices: dbInstanceEids.map(eid =>
+            saleInstanceEids.indexOf(eid)),
+        },
+      });
+      return;
+    }
 
-        const inexistentParentEids =
-          await req.prov.fetchInexistentSaleEids(saleEids);
+    const saleEids = saleInstanceEids
+      .map(dissectSellerEid)
+      .map(extractor('sale'));
 
-        if (inexistentParentEids.length > 0) {
-          sendError(res, {
-            error: errors.sale_instance_parent_eid_not_exists,
-            details: {
-              indices: inexistentParentEids.map(eid =>
-                saleEids.indexOf(eid)),
-            },
-          });
-          return;
-        }
+    const inexistentParentEids = await req.prov
+      .fetchInexistentSaleEids(saleEids);
 
-        const locationIds = await req.prov
-          .fetchLocationIdsByNames(extract(saleInstances, 'locationName'));
+    if (inexistentParentEids.length > 0) {
+      sendError(res, {
+        error: errors.sale_instance_parent_eid_not_exists,
+        details: {
+          indices: inexistentParentEids.map(eid =>
+            saleEids.indexOf(eid)),
+        },
+      });
+      return;
+    }
 
-        const emptyLocationIdsIndices = findAllIndices(
-          locationIds,
-          id => id === false,
-        );
-        if (emptyLocationIdsIndices.length > 0) {
-          sendError(res, {
-            error: errors.sale_instance_location_name_invalid,
-            details: {
-              indices: emptyLocationIdsIndices,
-            },
-          });
-          return;
-        }
+    const locationIds = await req.prov
+      .fetchLocationIdsByNames(extract(saleInstances, 'locationName'));
 
-        const saleInstancesWithLocation = saleInstances.map((instance, i) => {
-          return {
-            ...instance,
-            location: locationIds[i]
-          };
-        });
+    const emptyLocationIdsIndices = findAllIndices(
+      locationIds,
+      id => id === false,
+    );
+    if (emptyLocationIdsIndices.length > 0) {
+      sendError(res, {
+        error: errors.sale_instance_location_name_invalid,
+        details: {
+          indices: emptyLocationIdsIndices,
+        },
+      });
+      return;
+    }
 
-        return req.prov
-          .addSaleInstances({ saleInstances: saleInstancesWithLocation })
-          .then(genOk(res));
-      })
-      .catch(genDbError(res));
+    const saleInstancesWithLocation = saleInstances.map((instance, i) => {
+      return {
+        ...instance,
+        location: locationIds[i]
+      };
+    });
+
+    await req.prov
+      .addSaleInstances({ saleInstances: saleInstancesWithLocation })
+
+    ok(res);
   },
 };

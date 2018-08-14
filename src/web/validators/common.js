@@ -13,6 +13,7 @@ const {
 
 const {
   prefixProxy,
+  isInt,
 } = require('./../../utils.js');
 
 const models = require('./../../db/models/');
@@ -213,7 +214,7 @@ const validateLocation = (location) => {
 
   const nameError = validateName(name, {
     exists: true,
-    config: config.location.name
+    config: config.location.name,
   });
   if (nameError) {
     return nameError;
@@ -263,25 +264,19 @@ const validateLocations = (locations) => {
     }
   }
 };
-const validatePagination = (offset, amount, paginationConfig) => {
+const validatePagination = (offset = 0, amount, paginationConfig) => {
   const {
     maxAmount,
   } = paginationConfig;
 
-  if (!offset) {
-    return errors.common_offset_missing;
-  }
-
-  if (typeof offset !== 'number') {
+  if (typeof offset !== 'number' || !isInt(offset)) {
     return errors.common_offset_invalid;
   }
 
-  if (!amount) {
-    return errors.common_amount_missing;
-  }
-
-  if (typeof amount !== 'number') {
-    return errors.common_amount_invalid;
+  if (amount !== undefined) {
+    if (typeof amount !== 'number' || !isInt(amount)) {
+      return errors.common_amount_invalid;
+    }
   }
 
   if (amount >= maxAmount) {
@@ -292,6 +287,8 @@ const validatePagination = (offset, amount, paginationConfig) => {
 const validateEid = (eid, type, opts = {}) => {
   const {
     exists = true,
+    types,
+    confs,
   } = opts;
 
   if (!eid) {
@@ -300,9 +297,8 @@ const validateEid = (eid, type, opts = {}) => {
       : false;
   }
 
-  const provEid = config.provider.eid;
-  const saleEid = config.sale.eid;
-  const instEid = config.saleInstance.eid;
+  const eids = confs.map(({ eid }) => eid);
+  const sizes = eids.map(({ size }) => size);
 
   let err = false;
 
@@ -312,28 +308,23 @@ const validateEid = (eid, type, opts = {}) => {
     minError: errors.common_eid_length_short,
     maxError: errors.common_eid_length_long,
   });
-  switch (type) {
-    case 'instance':
-      err = localLenValidate(provEid.size + saleEid.size + instEid.size);
-      if (err) {
-        return err;
-      }
-      break;
-    case 'sale':
-      err = localLenValidate(provEid.size + saleEid.size);
-      if (err) {
-        return err;
-      }
-      break;
-    case 'provider':
-      err = localLenValidate(provEid.size);
-      if (err) {
-        return err;
-      }
-      break;
-    default:
-      console.error(`unrecognized sale type ${type}`);
-      return true;
+
+  const typeIndex = types.indexOf(type);
+
+  if (typeIndex === -1) {
+    console.error(`unrecognized type ${type} among ${types}`);
+    return errors.unexpected;
+  }
+
+  // sum all sizes up to (typeIndex) and including (+ 1) index
+  const size = sizes
+    .slice(0, typeIndex + 1)
+    .reduce((a, b) => a + b);
+
+  const lenErr = localLenValidate(size);
+
+  if (lenErr) {
+    return lenErr;
   }
 
   const localValidate = (offset, conf) =>
@@ -351,24 +342,50 @@ const validateEid = (eid, type, opts = {}) => {
     });
   switch (type) {
     // intentional cascade
-    case 'instance':
-      err = localValidate(provEid.size + saleEid.size, instEid);
+    case types[2]:
+      err = localValidate(sizes[0] + sizes[1], eids[2]);
       if (err) {
         return err;
       }
-    case 'sale':
-      err = localValidate(provEid.size, saleEid);
+    case types[1]:
+      err = localValidate(sizes[0], eids[1]);
       if (err) {
         return err;
       }
-    case 'provider':
-      err = localValidate(0, provEid);
+    case types[0]:
+      err = localValidate(0, eids[0]);
       if (err) {
         return err;
       }
       break;
   }
 };
+const validateBuyerEid = (eid, type, opts = {}) => validateEid(eid, type, {
+  confs: [
+    config.receiver,
+    config.receiver.location,
+    config.order,
+  ],
+  types: [
+    'receiver',
+    'location',
+    'order',
+  ],
+  ...opts,
+});
+const validateSellerEid = (eid, type, opts = {}) => validateEid(eid, type, {
+  confs: [
+    config.provider,
+    config.sale,
+    config.saleInstance,
+  ],
+  types: [
+    'provider',
+    'sale',
+    'instance',
+  ],
+  ...opts,
+});
 
 const validateSearch = (search, opts = {}) => {
   const {
@@ -386,7 +403,7 @@ const validateSearch = (search, opts = {}) => {
   if (termError) {
     return termError;
   }
-}
+};
 
 module.exports = {
   validatorFns: {
@@ -402,10 +419,12 @@ module.exports = {
     validateLocation,
     validatePagination,
     validateEid,
+    validateBuyerEid,
+    validateSellerEid,
     validateSearch,
   },
   generators: {
-    pagination: (paginationConfig) => function (req, res, next) {
+    pagination: paginationConfig => function (req, res, next) {
       const {
         offset,
         amount,
@@ -459,7 +478,7 @@ module.exports = {
             }
 
             req[this.config.sessionPrefix] = model;
-            req.session.save(next);
+            next();
           })
           .catch(genDbError(res));
       },
@@ -474,6 +493,17 @@ module.exports = {
         }
 
         next();
+      },
+      verified(req, res, next) {
+        const model = req[this.config.sessionPrefix];
+        if (model && model.attributes.verifiedBy !== null) {
+          next();
+          return;
+        }
+
+        sendError(res, {
+          error: errors.common_not_verified,
+        });
       },
       name(req, res, next) {
         handleRequestValidation(req, res, next, [{

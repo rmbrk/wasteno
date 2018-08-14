@@ -13,5 +13,14 @@ module.exports = {
       },
     });
   },
+  extractData(fetchResult) {
+    if (Array.isArray(fetchResult)) {
+      return fetchResult.models.map(({ attributes }) => attributes);
+    }
+    
+    return fetchResult
+      ? fetchResult.attributes
+      : null;
+  }
 };
 

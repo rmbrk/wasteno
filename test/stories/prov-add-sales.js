@@ -9,6 +9,8 @@ module.exports = async () => {
         'description',
         'eid',
         'category',
+        'priceAmount',
+        'priceCurrency',
       ]),
     }
   ))
