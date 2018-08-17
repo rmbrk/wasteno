@@ -9,8 +9,7 @@ const {
 const common = require('./common.js');
 
 const controllerConfig = {
-  model: Transporter,
-  sessionPrefix: 'trsp',
+  Model: Transporter,
   errorPrefix: 'transporter',
   dataName: 'transporter',
 };
@@ -18,21 +17,21 @@ module.exports = {
   config: controllerConfig,
   ...common.group.user,
 
-  async sendCoords(req, res) {
+  async sendCoords({ input, user }) {
     const {
       lon,
       lat,
-    } = req.body;
+    } = input;
 
-    await req.trsp.save({
+    await user.save({
       lon,
       lat
-    }, { path: true });
+    }, { patch: true });
 
-    ok(res);
+    return {}
   },
 
-  getOrdersByConvenience(req, res) {
-    ok(res);
+  getOrdersByConvenience({ input, session }) {
+    return {}
   }
 }

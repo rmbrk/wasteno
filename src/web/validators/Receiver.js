@@ -1,54 +1,30 @@
 const {
   Receiver,
+  ReceiverLocation,
 } = require('./../../db/models');
 
 const {
-  check,
-  validator,
-  handleRequestValidation,
-} = require('./helper.js');
-
-const {
-  sendError,
-  dbError,
-  errors,
   config,
+  affirm,
 } = require('./../helper.js');
 
 const common = require('./common.js');
-const { validatorFns: commonValidators } = common;
 
-const validateLocations = (locations) => { if (!locations) {
-    return errors.common_object_missing;
-  }
-
-  for (let i = 0; i < locations.length; ++i) {
-    const location = locations[i];
-
-    const locationError = commonValidators.validateLocation(location);
-    if (locationError) {
-      return [locationError, { index: i }];
-    }
-  }
-};
+const {
+  validateBuyerEid,
+} = common;
 
 const validationConfig = {
-  modelName: 'Receiver',
+  Model: Receiver,
+  LocationModel: ReceiverLocation,
   errorPrefix: 'receiver',
-  sessionPrefix: 'rec',
 };
 module.exports = {
   config: validationConfig,
   ...common.group.user,
   ...common.group.locationOwner,
 
-  eid(req, res, next) {
-    handleRequestValidation(req, res, next, [{
-      fn: eid => commonValidators.validateBuyerEid(eid, 'receiver'),
-      property: 'eid',
-      details: {
-        config: config.provider.eid,
-      },
-    }]);
+  eid({ input }) {
+    validateBuyerEid(input.eid, 'receiver');
   },
 };

@@ -20,7 +20,7 @@ const controllerConfig = {};
 
 module.exports = {
   config: controllerConfig,
-  search(req, res) {
+  async search({ input }) {
     const {
       offset = 0,
       amount = config.sale.pagination.maxAmount,
@@ -31,9 +31,9 @@ module.exports = {
       maxExpiry,
       minAmount = 1,
       categories = config.sale.categories,
-    } = req.body;
+    } = input;
 
-    new Sale()
+    const sales = await new Sale()
     //.query(q => q.select('* as sale'))
       .query(q => eidStart
         // shouldn't be a problem, as long as eidStart is validated
@@ -66,10 +66,8 @@ module.exports = {
       )
       .query(q => q.whereNotNull('Provider.verifiedBy'))
       .query(q => q.offset(offset).limit(amount))
-      .fetchAll()
-      .then((sales) => {
-        ok(res, { sales });
-      })
-      .catch(genDbError(res));
+      .fetchAll();
+
+    return { sales };
   },
 };

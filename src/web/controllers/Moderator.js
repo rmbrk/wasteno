@@ -6,13 +6,8 @@ const {
 } = require('./../../db/models');
 
 const {
-  errors,
-  config,
-  sendError,
-  ok,
-  genOk,
-  dbError,
-  genDbError,
+  affirm,
+  affirmError,
 } = require('./../helper.js');
 
 const {
@@ -21,33 +16,30 @@ const {
 
 const common = require('./common.js');
 
-const getVerify = model => (req, res) => {
+const getVerify = Model => async ({ input, user }) => {
   const {
     username,
-  } = req.body;
+  } = input;
 
-  const {
-    modMid,
-  } = req.session;
 
-  new model({ username })
-    .verify({ modMid })
-    .then(genOk(res))
-    .catch(genDbError(res));
+  await new Model({ username })
+    .verify({ modId: user.id });
+
+  return {}
 };
-const getDelete = model => (req, res) => {
+const getDelete = Model => async ({ input }) => {
   const {
     username,
-  } = req.body;
+  } = input;
 
-  new model({ username })
+  await new Model({ username })
     .destroy({ require: false })
-    .then(genOk(res))
-    .catch(genDbError(res));
+
+  return {}
 }
 
 const controllerConfig = {
-  model: Moderator,
+  Model: Moderator,
   sessionPrefix: 'mod',
   errorPrefix: 'moderator',
   dataName: 'moderator',
@@ -56,40 +48,30 @@ module.exports = {
   config: controllerConfig,
   ...common.group.user,
 
-  create(req, res) {
+  async create({ input, session, user }) {
     const {
       name,
       email,
       phone,
       username,
       password,
-    } = req.body;
+    } = input;
 
-    const parent = req.session.modId;
+    const usernameExists = await Moderator.exists({ username });
+    affirm(!usernameExists, 'common_username_required');
 
-    new Moderator({ username })
-      .fetch()
-      .then((mod) => {
-        if (mod) {
-          sendError(res, {
-            error: errors.common_username_exists,
-          });
-          return;
-        }
+    await new Moderator({
+      isOrigin: false,
+      parent: user.id,
+      name,
+      email,
+      phone,
+      username,
+      password,
+    })
+      .save()
 
-        return new Moderator({
-          isOrigin: false,
-          parent,
-          name,
-          email,
-          phone,
-          username,
-          password,
-        })
-          .save()
-          .then(genOk(res));
-      })
-      .catch(genDbError(res));
+    return {}
   },
   delete(req, res) {
     if (req.mod.get('isOrigin')) {
@@ -114,7 +96,7 @@ module.exports = {
       .fetch((mod) => {
         if (!mod) {
           sendError(res, {
-            error: errors.moderator_not_exists,
+            error: errors.moderator_not_required,
           });
           return;
         }

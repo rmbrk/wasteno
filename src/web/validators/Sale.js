@@ -1,37 +1,39 @@
 const {
   isInt,
   isInRange,
+  extract,
+  dissectSellerEid,
 } = require('./../../utils.js');
 
 const {
-  check,
-  validator,
-  handleRequestValidation,
-} = require('./helper.js');
-
-const {
-  sendError,
-  genDbError,
-  errors,
   config,
+  affirm,
+  affirmMany,
 } = require('./../helper.js');
 
 const common = require('./common.js');
 
-const { validatorFns: commonValidators } = common;
+const {
+  validateString,
+  validateName,
+  validateSellerEid,
+  validateSearch,
+} = common;
 
 const validateSaleDescription = (description, opts = {}) => {
   const {
-    exists = false,
+    required = true,
   } = opts;
 
-  return commonValidators.validateString(description, {
-    exists,
+  return validateString(description, {
+    required,
     config: config.sale.description,
-    missingErr: errors.sale_description_missing,
-    shortErr: errors.sale_description_length_short,
-    longErr: errors.sale_description_length_long,
-    charsetErr: errors.sale_description_out_of_charset,
+    errors: {
+      missing: 'sale_description_missing',
+      short: 'sale_description_length_short',
+      long: 'sale_description_length_long',
+      charset: 'sale_description_out_of_charset',
+    },
   });
 };
 const validateSale = (sale) => {
@@ -44,34 +46,22 @@ const validateSale = (sale) => {
     category,
   } = sale;
 
-  const nameError = commonValidators.validateName(name, { exists: true });
-  if (nameError) {
-    return nameError;
-  }
-
-  const descriptionError = validateSaleDescription(description, { exists: true });
-  if (descriptionError) {
-    return descriptionError;
-  }
-
-  const eidError = commonValidators.validateSellerEid(eid, 'sale');
-  if (eidError) {
-    return eidError;
-  }
+  validateName(name);
+  validateSaleDescription(description);
+  validateSellerEid(eid, 'sale');
 };
-const validateSales = (sales) => {
+const validateSales = (sales, opts = {}) => {
+  const {
+    required = true,
+  } = opts;
+
   if (!sales) {
-    return errors.common_object_missing;
+    affirm(!required, 'object_missing');
+    return;
   }
 
-  for (let i = 0; i < sales.length; ++i) {
-    const sale = sales[i];
 
-    const saleError = validateSale(sale);
-    if (saleError) {
-      return [saleError, { index: i }];
-    }
-  }
+  affirmMany(validateSale, sales);
 };
 
 const validateSaleInstance = (saleInstance) => {
@@ -82,55 +72,44 @@ const validateSaleInstance = (saleInstance) => {
     locationName,
   } = saleInstance;
 
+
   if (quantity) {
-    if (!isInt(quantity)
-        || !isInRange(quantity, 1, config.saleInstance.quantity.max)) {
-      return errors.sale_instance_quantity_invalid;
-    }
+    affirm(isInt(quantity)
+        && isInRange(quantity, 1, config.saleInstance.quantity.max),
+      'sale_instance_quantity_invalid');
   }
 
-  if (!expiry) {
-    return errors.sale_instance_expiry_missing;
-  }
-  if (!isInt(expiry)) {
-    return errors.sale_instance_expiry_invalid;
-  }
-  if (expiry < Date.now()) {
-    return errors.ale_instance_expiry_passed;
-  }
+  affirm(expiry, 'sale_instance_expiry_missing');
+  affirm(isInt(expiry), 'sale_instance_expiry_invalid');
+  affirm(expiry > Date.now(), 'sale_instance_expiry_passed');
 
-  const locationNameErr = commonValidators.validateString(locationName, {
-    exists: true,
+  validateString(locationName, {
+    required: true,
     config: config.location.name,
-    missingErr: errors.sale_instance_location_name_missing,
-    shortErr: errors.sale_instance_location_name_length_short,
-    longErr: errors.sale_instance_location_name_length_long,
-    charsetErr: errors.sale_instance_location_name_out_of_charset,
+    errors: {
+      missing: 'sale_instance_location_name_missing',
+      short: 'sale_instance_location_name_length_short',
+      long: 'sale_instance_location_name_length_long',
+      charset: 'sale_instance_location_name_out_of_charset',
+    }
   });
-  if (locationNameErr) {
-    return locationNameErr; 
-  }
 
-  return commonValidators.validateSellerEid(eid, 'instance');
+  validateSellerEid(eid, 'instance');
 };
 
-const validateSaleInstances = (saleInstances) => {
+const validateSaleInstances = (saleInstances, opts = {}) => {
+  const {
+    required = true,
+  } = opts;
+
   if (!saleInstances) {
-    return errors.common_object_missing;
+    affirm(!required, 'object_missing');
+    return;
   }
 
-  if (!Array.isArray(saleInstances)) {
-    return errors.common_object_not_array;
-  }
+  affirm(Array.isArray(saleInstances), 'object_not_array');
 
-  for (let i = 0; i < saleInstances.length; ++i) {
-    const saleInstance = saleInstances[i];
-
-    const saleInstanceError = validateSaleInstance(saleInstance);
-    if (saleInstanceError) {
-      return [saleInstanceError, { index: i }];
-    }
-  }
+  affirmMany(validateSaleInstance, saleInstances);
 };
 
 const validationConfig = {
@@ -141,57 +120,43 @@ module.exports = {
 
   salePagination: common.generators.pagination(config.sale.pagination),
   instancePagination: common.generators.pagination(config.saleInstance.pagination),
-  sales(req, res, next) {
-    handleRequestValidation(req, res, next, [{
-      fn: validateSales,
-      property: 'sales',
-      details: {
-        config: {
-          ...config.sale,
-          eid: config.sale.eid,
-        },
-      },
-    }]);
+  sales({ input }) {
+    validateSales(input.sales);
   },
-  saleEid(req, res, next) {
-    handleRequestValidation(req, res, next, [{
-      fn: saleEid => commonValidators.validateSellerEid(saleEid, 'sale'),
-      property: 'saleEid',
-      details: {
-        config: config.sale.eid,
+  eidMatchesProvider({ input, user }) {
+    const saleEids = extract(input.sales, 'eid');
+    const dissectedSaleEids = saleEids.map(dissectSellerEid);
+
+    affirmMany(
+      (eid) => {
+        affirm(
+          eid.provider === user.attributes.eid,
+          'provider_eid_not_matching',
+        );
       },
-    }]);
+      dissectedSaleEids);
   },
-  instances(req, res, next) {
-    handleRequestValidation(req, res, next, [{
-      fn: validateSaleInstances,
-      property: 'saleInstances',
-      details: {
-        config: config.saleInstance,
-      },
-    }]);
+  saleEid({ input }) {
+    validateSellerEid(input.saleEid, 'sale');
   },
-  search(req, res, next) {
-    const baseError = commonValidators.validateSearch(req.body, {
+  instances({ input }) {
+    validateSaleInstances(input.saleInstances);
+  },
+  search({ input }) {
+    validateSearch(input, {
       paginationConfig: config.sale.pagination,
       termConfig: {
-        exists: true,
+        required: true,
         config: config.sale.search.term,
-        charsetErr: errors.sale_search_term_out_of_charset,
-        missingErr: errors.sale_search_term_missing,
-        longErr: errors.sale_search_term_length_long,
-        shortErr: errors.sale_search_term_length_short,
-      }
-    });
-    if (baseError) {
-      sendError(res, {
-        error: baseError,
-        details: {
-          config: config.sale,
+        errors: {
+          charset: 'sale_search_term_out_of_charset',
+          missing: 'sale_search_term_missing',
+          long: 'sale_search_term_length_long',
+          short: 'sale_search_term_length_short',
         },
-      });
-    }
-    // TODO
-    next();
-  }
-}
+      },
+    });
+
+    // TODO semantic validation
+  },
+};

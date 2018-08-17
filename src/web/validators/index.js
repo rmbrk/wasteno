@@ -1,11 +1,13 @@
-const fs = require('fs');
+const {
+  createConsumers,
+} = require('./../helper.js');
 
-const { isUpperCase, pascalToCamel } = require('./../../utils.js');
-
-const validators = fs.readdirSync('/src/web/validators')
-  .filter(validator => isUpperCase(validator[0]) && !validator.startsWith('.'));
-
-module.exports = validators.reduce((out, controllerName) => ({
-  ...out,
-  [pascalToCamel(controllerName.split('.')[0])]: require(`./${controllerName}`),
-}), {});
+module.exports = createConsumers({
+  path: '/src/web/validators',
+  type: 'validator',
+  additionalProperties: {
+    error(err) {
+      return `${this.errorPrefix}_${err}`;
+    },
+  }
+})

@@ -14,6 +14,7 @@ const stories = `
   prov add-sales
   any get-sales by-provider
   prov add-sale-instances
+  any get-sale-instances by-provider
   prov logout
 
   # RECEIVER
@@ -33,6 +34,7 @@ const stories = `
   mod verify-prov
   mod verify-rec
   mod verify-trsp
+  +mod logout-origin
 
   +rec login
   rec search-sale
@@ -41,18 +43,19 @@ const stories = `
 
   rec pay-order
   rec order-status-paid
+  +rec logout
 
   +trsp login
   trsp send-coords
   trsp get-convenient-orders
-  trsp accept-order
-  rec order-status-accepted
-  trsp pick-order
-  rec order-status-picked
-  trsp drop-order
-  rec order-status-received
+  #trsp accept-order
+  #rec order-status-accepted
+  #trsp pick-order
+  #rec order-status-picked
+  #trsp drop-order
+  #rec order-status-received
 
-  rec rate-order
+  #rec rate-order
 `;
 
 const storyNames = stories
@@ -71,7 +74,7 @@ module.exports = start('stories', async () => {
       try {
         await require(storyPath)();
       } catch (e) {
-        throw `issue with side-effect ${storyPath}`;
+        throw `issue with side-effect ${storyPath}:\n${e.stack}`;
       }
     } else {
       let exists = true;

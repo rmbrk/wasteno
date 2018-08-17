@@ -3,24 +3,17 @@ const {
 } = require('./../../db/models');
 
 const {
-  check,
-  validator,
-  handleRequestValidation,
-} = require('./helper.js');
-
-const {
-  sendError,
-  genDbError,
-  errors,
-  config,
+  affirm,
 } = require('./../helper.js');
 
 const common = require('./common.js');
 
-const { validatorFns: commonValidators } = common;
+const {
+  validateSellerEid,
+} = common;
 
 const validationConfig = {
-  modelName: 'Provider',
+  Model: Provider,
   errorPrefix: 'provider',
   sessionPrefix: 'prov',
 };
@@ -29,13 +22,7 @@ module.exports = {
   ...common.group.user,
   ...common.group.locationOwner,
 
-  eid(req, res, next) {
-    handleRequestValidation(req, res, next, [{
-      fn: eid => commonValidators.validateSellerEid(eid, 'provider'),
-      property: 'eid',
-      details: {
-        config: config.provider.eid,
-      },
-    }]);
+  eid({ input }) {
+    validateSellerEid(input.eid, 'provider');
   },
 };

@@ -41,10 +41,13 @@ const methods = {
 
         return model;
       },
-      async verify({ modMid }) {
+      async verify({ modId }) {
         return this.fetch()
-          .then(model => model.save('verifiedBy', modMid));
+          .then(model => model.save('verifiedBy', modId));
       },
+      isVerified() {
+        return this.attributes.verifiedBy !== null;
+      }
     },
     locationOwner: {
       async addLocations(opts) {
@@ -68,8 +71,8 @@ const methods = {
             isAnyMain = true;
           }
 
-          const additionalFields = this.config.additionalLocationFields
-            ? this.config.additionalLocationFields.reduce((acc, field) =>
+          const additionalFields = this.additionalLocationFields
+            ? this.additionalLocationFields.reduce((acc, field) =>
               Object.assign(acc, {
                 [field]: location[field],
               }), {})
@@ -89,22 +92,22 @@ const methods = {
         });
 
         if (isAnyMain) {
-          await new models[this.config.locationModel]({ parent: this.id, isMain: true })
-            .fetch()
-            .then((possiblePrevMain) => {
-              if (possiblePrevMain) {
-                possiblePrevMain.save({ isMain: false });
-              }
-            });
+          const possiblePrevMain =
+            await new this.LocationModel({ parent: this.id, isMain: true })
+              .fetch();
+
+          if (possiblePrevMain) {
+            possiblePrevMain.save({ isMain: false });
+          }
         }
 
-        return new models[this.config.locationCollection](usableLocations)
+        await new this.LocationModel.Collection(usableLocations)
           .invokeThen('save');
       },
       locationsByNames(names) {
         const uniqueNames = getUnique(names);
 
-        return new models[this.config.locationModel]({ parent: this.id })
+        return new this.LocationModel({ parent: this.id })
           .query(q => q.whereIn('name', uniqueNames));
       },
       fetchLocationIdsByNames(names) {

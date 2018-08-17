@@ -2,7 +2,29 @@ const fs = require('fs');
 
 const { Model, Collection, knex } = require('./../bookshelf.js');
 
-const { uniquify } = require('./../../utils.js');
+const {
+  uniquify,
+} = require('./../../utils.js');
+
+const additionalMethods = {};
+const additionalStatics = {
+  async exists(opts = {}) {
+    const {
+      query,
+      ...params
+    } = opts;
+
+    let m = new this(params);
+
+    if (query) {
+      m = m.query(query);
+    }
+
+    const model = await m.fetch();
+
+    return !!model;
+  },
+};
 
 const dbActions = [];
 
@@ -11,7 +33,7 @@ if (process.env.NODE_ENV === 'test' || true) {
   dbActions.push(() => knex.raw(`drop owned by ${process.env.DB_USERNAME}`));
 }
 // likeness score
-dbActions.push(() => knex.raw('CREATE EXTENSION pg_trgm'))
+dbActions.push(() => knex.raw('CREATE EXTENSION pg_trgm'));
 
 const processedTableNames = [];
 const toProcessTableNames = ['Moderator'];
@@ -98,6 +120,7 @@ const buildTablesFromName = name => new Promise((resolve, reject) => {
 const createModelFromName = (name, models = {}) => {
   const {
     schema,
+    config: modelConfig = {},
     references = {},
     associations = {},
     methods = {},
@@ -151,10 +174,15 @@ const createModelFromName = (name, models = {}) => {
     }, {});
 
   models[name] = Model.extend({
+    ...additionalMethods,
     ...methods,
     ...associationFns,
     tableName: name,
-  }, statics);
+  }, {
+    ...additionalStatics,
+    ...statics,
+    config: modelConfig,
+  });
 
   models[name].Collection =
   models[collectionName] = Collection.extend({
@@ -180,7 +208,7 @@ const getModels = () =>
   // models in the mesh that includes Moderator
   createModelFromName('Moderator');
 
-const startDBActions = () => {
+const startDBActions = async () => {
   uniquify(toProcessTableNames);
 
   const checkToProcessAndNext = (promise, res, rej) => {
@@ -207,13 +235,34 @@ const startDBActions = () => {
 
   dbActions.push(tablePromise);
 
-  return dbActions.reduce(
+  await dbActions.reduce(
     (promise, action) => promise.then(action),
     Promise.resolve(),
   );
 };
 
 const models = getModels();
+
+// evaluate and add models from config
+Object.values(models)
+  .forEach((model) => {
+    if (model.config) {
+      const {
+        models: configModels = {},
+        ...additionalFields
+      } = model.config;
+
+      Object.entries(configModels)
+        .forEach(([key, modelName]) => {
+          model[key] = model.prototype[key] = models[modelName];
+        })
+
+      Object.entries(additionalFields)
+        .forEach(([key, value]) => {
+          model[key] = model.prototype[key] = value;
+        });
+    }
+  })
 
 module.exports = {
   ...models,

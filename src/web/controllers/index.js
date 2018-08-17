@@ -1,11 +1,13 @@
-const fs = require('fs');
+const {
+  createConsumers,
+} = require('./../helper.js');
 
-const { isUpperCase, pascalToCamel } = require('./../../utils.js');
-
-const controllers = fs.readdirSync('/src/web/controllers')
-  .filter(controller => isUpperCase(controller[0]) && !controller.startsWith('.'));
-
-module.exports = controllers.reduce((out, controllerName) => ({
-  ...out,
-  [pascalToCamel(controllerName.split('.')[0])]: require(`./${controllerName}`),
-}), {});
+module.exports = createConsumers({
+  path: '/src/web/controllers',
+  type: 'controller',
+  additionalProperties: {
+    error(err) {
+      return `${this.errorPrefix}_${err}`;
+    },
+  }
+})

@@ -34,7 +34,16 @@ global.pluck = (obj, props) =>
   props.reduce((acc, prop) => ({ ...acc, [prop]: obj[prop] }), {});
 global.mapPluck = (arr, props) => arr.map((obj) => pluck(obj, props));
 
-global.getRandomItem = (arr) => arr[Math.random() * arr.length |0];
+global.getRandomItem = (val, base = 0) => {
+  if (Array.isArray(val)) {
+    return val[Math.random() * val.length |0];
+  }
+
+  if (typeof val === 'number') {
+    // return no between base and val
+    return base + Math.floor(Math.random() * (val - base));
+  }
+}
 
 global.wait = ms => new Promise((resolve) => {
   setTimeout(resolve, ms);
@@ -213,7 +222,9 @@ global.assertRes = (reason, res, opts = {}) => {
   if (debug) {
     console.error(attemptStringify(res));
   }
-  assert.equal(res.success, true, `${reason}: ${res.error}\n${attemptStringify(res)}`);
+
+  const err = res.errors && res.errors[0].msg;
+  assert.equal(res.success, true, `${reason}: ${err}\n${attemptStringify(res)}`);
 
   return res;
 };

@@ -1,9 +1,12 @@
 const { types, methods } = require('./common.js');
 
-const methodConfig = {
-  modelName: 'Transporter',
+const modelConfig = {
+  models: {
+    Model: 'Transporter',
+  }
 };
 module.exports = {
+  config: modelConfig,
   schema: {
     ...types.group.contact,
     ...types.group.login,
@@ -27,7 +30,6 @@ module.exports = {
     }
   },
   methods: {
-    config: methodConfig,
     ...methods.group.user,
     initialize() {
       this.constructor.__super__.initialize.apply(this, arguments);

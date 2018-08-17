@@ -14,179 +14,134 @@ const {
 } = require('./../../db/models');
 
 const {
-  errors,
   config,
-  sendError,
-  ok,
-  genOk,
-  dbError,
-  genDbError,
+  affirm,
+  affirmMany,
 } = require('./../helper.js');
 
 const common = require('./common.js');
 
 const controllerConfig = {
-  model: Provider,
+  Model: Provider,
+  LocationModel: ProviderLocation,
   additionalUserProperties: ['eid'],
   sessionPrefix: 'prov',
   errorPrefix: 'provider',
   dataName: 'provider',
-  locationModel: ProviderLocation,
 };
 module.exports = {
   config: controllerConfig,
   ...common.group.user,
   ...common.group.locationOwner,
 
-  getSales(req, res) {
+  async getSales({ input }) {
     const {
       username,
       amount = config.sale.pagination.items.maxAmount,
       offset = 0,
-    } = req.body;
+    } = input;
 
-    new Provider({ username })
+    const prov = await new Provider({ username })
       .fetch({
         withRelated: {
           sales: q => q.limit(amount).offset(offset),
         },
       })
-      .then((prov) => {
-        if (!prov) {
-          sendError(res, {
-            error: errors.provider_not_exists,
-          });
-          return;
-        }
 
-        ok(res, {
-          sales: extract(prov.relations.sales.models, 'attributes'),
-        });
-      })
-      .catch(genDbError(res));
+    affirm(prov, 'provider_not_exists');
+
+    return {
+      sales: extract(prov.relations.sales.models, 'attributes'),
+    }
   },
-  addSales(req, res) {
+  async addSales({ input, user }) {
     const {
-      sales,
-    } = req.body;
+       sales,
+    } = input;
 
     const saleEids = extract(sales, 'eid');
-    const dissectedSaleEids = saleEids.map(dissectSellerEid);
 
-    const badProviderEids = dissectedSaleEids.filter(eid =>
-      eid.provider !== req.prov.get('eid'));
+    const alreadyExistingSaleEids =
+      await user.fetchAlreadyExistingSaleEids(saleEids);
 
-    if (badProviderEids.length > 0) {
-      sendError(res, {
-        error: errors.provider_eid_not_matching,
-        details: {
-          indices: badProviderEids.map(eid => saleEids.indexOf(eid)),
-        },
-      });
-      return;
-    }
+    affirm(alreadyExistingSaleEids.length === 0, {
+      msg: 'sale_eid_exists',
+      details: {
+        indices: alreadyExistingSaleEids.map(eid => saleEids.indexOf(eid)),
+      }
+    });
 
-    req.prov
-      .fetchAlreadyExistingSaleEids(saleEids)
-      .then((dbSaleEids) => {
-        if (dbSaleEids.length > 0) {
-          sendError(res, {
-            error: errors.sale_eid_exists,
-            details: {
-              indices: dbSaleEids.map(eid => saleEids.indexOf(eid)),
-            },
-          });
-          return;
-        }
+    await user.addSales({ sales });
 
-        return req.prov
-          .addSales({ sales })
-          .then(genOk(res));
-      })
-      .catch(genDbError(res));
+    return {};
   },
-  getSaleInstances(req, res) {
+  async getSaleInstances({ input, session }) {
     const {
-      offset,
+      offset = 0,
       amount,
-      username,
-      eid,
-    } = req.body;
+      saleEid,
+    } = input;
 
-    new Sale({ 'parent.username': username, eid })
+    const sale = await new Sale({ eid: saleEid })
       .fetch({
         withRelated: {
           instances: q => q.limit(amount).offset(offset),
         },
-      })
-      .then((sale) => {
-        if (!sale) {
-          sendError(res, {
-            error: errors.sale_eid_not_exists,
-          });
-          return;
-        }
-
-        ok(res, {
-          saleInstances: sale.related('instances').models,
-        });
       });
+
+    affirm(sale, 'sale_eid_not_exists');
+
+    return {
+      saleInstances: sale.related('instances').models,
+    }
   },
-  async addSaleInstances(req, res) {
+  async addSaleInstances({ input, user }) {
     const {
       saleInstances,
-    } = req.body;
+    } = input;
 
-    const saleInstanceEids = extract(saleInstances, 'eid');
+    const eids = extract(saleInstances, 'eid');
 
-    const dbInstanceEids = await req.prov
-      .fetchAlreadyExistingSaleInstanceEids(saleInstanceEids);
+    const alreadyExistingEids =
+      await user.fetchAlreadyExistingSaleInstanceEids(eids);
 
-    if (dbInstanceEids.length > 0) {
-      sendError(res, {
-        error: errors.sale_instance_eid_exists,
-        details: {
-          indices: dbInstanceEids.map(eid =>
-            saleInstanceEids.indexOf(eid)),
-        },
-      });
-      return;
-    }
+    affirm(alreadyExistingEids.length === 0, {
+      msg: 'sale_instance_eid_exists',
+      details: {
+        indices: alreadyExistingEids.map(eid =>
+          eids)
+      }
+    })
 
-    const saleEids = saleInstanceEids
+    const saleEids = eids
       .map(dissectSellerEid)
       .map(extractor('sale'));
 
-    const inexistentParentEids = await req.prov
-      .fetchInexistentSaleEids(saleEids);
+    const inexistentParentEids =
+      await user.fetchInexistentSaleEids(saleEids);
 
-    if (inexistentParentEids.length > 0) {
-      sendError(res, {
-        error: errors.sale_instance_parent_eid_not_exists,
-        details: {
-          indices: inexistentParentEids.map(eid =>
-            saleEids.indexOf(eid)),
-        },
-      });
-      return;
-    }
+    affirm(inexistentParentEids.length === 0, {
+      msg: 'sale_instance_parent_eid_not_required',
+      details: {
+        indices: inexistentParentEids.map(eid =>
+          saleEids.indexOf(eid)),
+      }
+    })
 
-    const locationIds = await req.prov
+    const locationIds = await user
       .fetchLocationIdsByNames(extract(saleInstances, 'locationName'));
 
     const emptyLocationIdsIndices = findAllIndices(
       locationIds,
       id => id === false,
     );
-    if (emptyLocationIdsIndices.length > 0) {
-      sendError(res, {
-        error: errors.sale_instance_location_name_invalid,
-        details: {
-          indices: emptyLocationIdsIndices,
-        },
-      });
-      return;
-    }
+
+    affirm(emptyLocationIdsIndices.length === 0, {
+      msg: 'sale_instance_location_name_not_exists',
+      details: {
+        indices: emptyLocationIdsIndices,
+      }
+    });
 
     const saleInstancesWithLocation = saleInstances.map((instance, i) => {
       return {
@@ -195,9 +150,9 @@ module.exports = {
       };
     });
 
-    await req.prov
+    await user
       .addSaleInstances({ saleInstances: saleInstancesWithLocation })
 
-    ok(res);
+    return {};
   },
 };

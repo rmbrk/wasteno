@@ -13,12 +13,14 @@ const { types, methods } = require('./common.js');
 
 const { models } = require('./helper.js');
 
-const methodConfig = {
-  modelName: 'Provider',
-  locationCollection: 'ProviderLocations',
-  locationModel: 'ProviderLocation',
+const modelConfig = {
+  models: {
+    Model: 'Provider',
+    LocationModel: 'ProviderLocation'
+  },
 };
 module.exports = {
+  config: modelConfig,
   schema: {
     ...types.group.contact,
     ...types.group.login,
@@ -40,7 +42,6 @@ module.exports = {
     },
   },
   methods: {
-    config: methodConfig,
     ...methods.group.locationOwner,
     ...methods.group.user,
     initialize() {

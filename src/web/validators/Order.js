@@ -5,21 +5,11 @@ const {
 } = require('./../../utils.js');
 
 const {
-  check,
-  validator,
-  handleRequestValidation,
-} = require('./helper.js');
-
-const {
-  sendError,
-  genDbError,
-  errors,
   config,
+  affirm,
 } = require('./../helper.js');
 
 const common = require('./common.js');
-
-const { validatorFns: commonValidators } = common;
 
 const validationConfig = {
   modelName: 'Order',
@@ -29,28 +19,16 @@ module.exports = {
 
   orderPagination: common.generators.pagination(config.order.pagination),
   
-  items(req, res, next) {
+  items({ input }) {
     // TODO (db validation should happen here)
-    next();
   },
 
-  eid(req, res, next) {
+  eid({ input }) {
     // TODO
-    next();
   },
 
-  recOwnsEid(req, res, next) {
-    const {
-      eid,
-    } = req.body;
-
-    if (dissectBuyerEid(eid).receiver !== req.rec.attributes.eid) {
-      sendError(res, {
-        error: errors.order_eid_not_matching_receiver,
-      });
-      return;
-    }
-
-    next();
+  recOwnsEid({ input, user }) {
+    affirm(dissectBuyerEid(input.eid).receiver === user.attributes.eid,
+      'order_eid_not_matching_receiver');
   }
 }

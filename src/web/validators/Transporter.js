@@ -1,4 +1,8 @@
 const {
+  Transporter,
+} = require('./../../db/models/');
+
+const {
   sendError,
   dbError,
   errors,
@@ -7,48 +11,29 @@ const {
 
 const common = require('./common.js');
 const { 
-  validatorFns: {
-    validateLon,
-    validateLat,
-  } 
+  validateLon,
+  validateLat,
 } = common;
 
 const validationConfig = {
-  modelName: 'Transporter',
+  Model: Transporter,
   errorPrefix: 'transporter',
-  sessionPrefix: 'trsp',
 };
 module.exports = {
   config: validationConfig,
   ...common.group.user,
 
-  coords(req, res, next) {
+  coords({ input, session }) {
     const {
       lon,
       lat
-    } = req.body;
+    } = input;
 
-    const lonErr = validateLon(lon, { exists: true });
-    if (lonErr) {
-      sendError(res, {
-        error: lonErr,
-      });
-      return;
-    }
-
-    const latErr = validateLat(lat, { exists: true });
-    if (latErr) {
-      sendError(res, {
-        error: latErr,
-      })
-      return;
-    }
-
-    next();
+    validateLon(lon);
+    validateLat(lat);
   },
 
-  convenienceOrderSearch(req, res, next) {
+  convenienceOrderSearch({ input, session }) {
     // TODO
-    next();
   }
 };

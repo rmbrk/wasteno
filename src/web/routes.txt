@@ -179,7 +179,7 @@ post /sales/add
 - provider
   . loggedIn
 - sale
-  . sales
+  . sales eidMatchesProvider
 - provider
   > addSales
 
@@ -189,8 +189,6 @@ post /sales/search
   > search
 
 post /sales/instances
-- provider
-  . username
 - sale
   . instancePagination saleEid
 - provider

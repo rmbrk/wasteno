@@ -5,13 +5,15 @@ const { models, extractData } = require('./helper.js');
 
 const config = require('./../../config.js');
 
-const methodConfig = {
-  modelName: 'Receiver',
-  locationCollection: 'ReceiverLocations',
-  locationModel: 'ReceiverLocation',
+const modelConfig = {
+  models: {
+    Model: 'Receiver',
+    LocationModel: 'ReceiverLocation',
+  },
   additionalLocationFields: ['eid'],
 };
 module.exports = {
+  config: modelConfig,
   schema: {
     ...types.group.login,
     ...types.group.contact,
@@ -31,7 +33,6 @@ module.exports = {
     },
   },
   methods: {
-    config: methodConfig,
     ...methods.group.locationOwner,
     ...methods.group.user,
     initialize() {

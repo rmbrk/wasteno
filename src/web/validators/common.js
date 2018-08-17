@@ -1,199 +1,209 @@
-const {
-  check,
-  validator,
-  handleRequestValidation,
-} = require('./helper.js');
+const validator = require('validator');
 
 const {
-  sendError,
-  errors,
-  genDbError,
+  affirm,
+  affirmInternal,
+  affirmMany,
   config,
 } = require('./../helper.js');
 
 const {
   prefixProxy,
   isInt,
+  isInRange,
 } = require('./../../utils.js');
 
 const models = require('./../../db/models/');
 
+const validateLen = (str, opts = {}) => {
+  const {
+    min,
+    max,
+    errors,
+  } = opts;
+
+  affirm(str.length >= min, errors.small);
+  affirm(str.length <= max, errors.large);
+};
+const validateCharset = (str, opts = {}) => {
+  const {
+    charset,
+    errors,
+  } = opts;
+
+  str.split('')
+    .forEach(char =>
+      affirm(charset.includes(char), errors.charset));
+};
 const validateString = (str, opts = {}) => {
   const {
-    exists = false,
+    required = false,
     config: strConfig,
-    missingErr,
-    charsetErr,
-    shortErr,
-    longErr,
+    errors,
   } = opts;
 
   if (!str) {
-    return exists
-      ? missingErr
-      : false;
+    affirm(!required, errors.missing);
+    return;
   }
 
-  if (typeof str !== 'string') {
-    return charsetErr;
-  }
+  affirm(typeof str === 'string', errors.charset);
 
-  const lengthError = check.len(str, {
+  validateLen(str, {
     min: strConfig.minSize,
     max: strConfig.maxSize,
-    minError: shortErr,
-    maxError: longErr,
+    errors,
   });
-  if (lengthError) {
-    return lengthError;
-  }
 
-  const charsetError = check.charset(str, {
+  validateCharset(str, {
     charset: strConfig.charset,
-    charsetError: charsetErr,
+    errors,
   });
-  if (charsetError) {
-    return charsetError;
-  }
-
-  return false;
 };
 const validateName = (name, opts = {}) => {
   const {
-    exists = false,
+    required = false,
     nameConfig = config.common.name,
   } = opts;
 
-  return validateString(name, {
-    exists,
+  validateString(name, {
+    required,
     config: nameConfig,
-    missingErr: errors.common_name_missing,
-    charsetErr: errors.common_name_out_of_charset,
-    shortErr: errors.common_name_length_short,
-    longError: errors.common_name_length_long,
+    errors: {
+      missing: 'name_missing',
+      charset: 'name_out_of_charset',
+      short: 'name_length_short',
+      long: 'name_length_long',
+    },
   });
 };
 
 const validateUsername = (username, opts = {}) => {
   const {
-    exists = true,
+    required = true,
   } = opts;
 
-  return validateString(username, {
-    exists,
+  validateString(username, {
+    required,
     config: config.common.username,
-    missingErr: errors.common_username_missing,
-    charsetErr: errors.common_username_out_of_charset,
-    shortErr: errors.common_username_length_short,
-    longError: errors.common_username_length_long,
+    errors: {
+      missing: 'username_missing',
+      charset: 'username_out_of_charset',
+      short: 'username_length_short',
+      long: 'username_length_long',
+    },
   });
 };
 
 const validatePassword = (password, opts = {}) => {
   const {
-    exists = true,
+    required = true,
   } = opts;
 
-  return validateString(password, {
-    exists,
+  validateString(password, {
+    required,
     config: config.common.password,
-    missingErr: errors.common_password_missing,
-    charsetErr: errors.common_password_out_of_charset,
-    shortErr: errors.common_password_length_short,
-    longError: errors.common_password_length_long,
+    errors: {
+      missing: 'password_missing',
+      charset: 'password_out_of_charset',
+      short: 'password_length_short',
+      long: 'password_length_long',
+    },
   });
 };
 
 const validateEmail = (email, opts = {}) => {
   const {
-    exists = true,
+    required = true,
   } = opts;
 
   if (!email) {
-    return exists
-      ? errors.common_email_missing
+    return required
+      ? errors.email_missing
       : false;
   }
 
   if (typeof email !== 'string') {
-    return errors.common_email_invalid;
+    return errors.email_invalid;
   }
 
   if (!validator.isEmail(email)) {
-    return errors.common_email_invalid;
+    return errors.email_invalid;
   }
 
   if (email.length > config.common.email.maxSize) {
-    return errors.common_email_length_long;
+    return errors.email_length_long;
   }
 };
 
 const validatePhone = (phone, opts = {}) => {
   const {
-    exists = true,
+    required = true,
   } = opts;
 
   if (!phone) {
-    return exists
-      ? errors.common_phone_missing
+    return required
+      ? errors.phone_missing
       : false;
   }
 
   if (typeof phone !== 'string') {
-    return errors.common_phone_invalid;
+    return errors.phone_invalid;
   }
 
   if (!validator.isMobilePhone(phone, 'any')) {
-    return errors.common_phone_invalid;
+    return errors.phone_invalid;
   }
 
   if (phone.length > config.common.phone.maxSize) {
-    return errors.common_phone_invalid;
+    return errors.phone_invalid;
   }
 };
 
 const validateLon = (lon, opts = {}) => {
   const {
-    exists = false,
+    required = true,
   } = opts;
 
   if (!lon) {
-    return exists
-      ? errors.common_lon_missing
-      : false;
+    affirm(!required, 'lon_missing');
+    return;
   }
 
-  if (typeof lon !== 'number' || lon < -180 || lon > 180) {
-    return errors.common_lon_invalid;
-  }
+  affirm(
+    typeof lon === 'number' && isInRange(lon, -180, 180),
+    'lon_invalid',
+  );
 };
 const validateLat = (lat, opts = {}) => {
   const {
-    exists = false,
+    required = true,
   } = opts;
 
   if (!lat) {
-    return exists
-      ? errors.common_lat_missing
-      : false;
+    affirm(!required, 'lat_missing');
+    return;
   }
 
-  if (typeof lat !== 'number' || lat < -90 || lat > 90) {
-    return errors.common_lat_invalid;
-  }
+  affirm(
+    typeof lat === 'number' && isInRange(lat, -90, 90),
+    'lat_invalid',
+  );
 };
 
 const validateAddress = (address, opts = {}) => {
   const {
-    exists = true,
+    required = true,
   } = opts;
 
-  return validateString(address, {
+  validateString(address, {
     config: config.location.address,
-    missingErr: errors.common_address_missing,
-    charsetErr: errors.common_address_out_of_charset,
-    shortErr: errors.common_address_length_short,
-    longErr: errors.common_address_length_long,
+    errors: {
+      missing: 'address_missing',
+      charset: 'address_out_of_charset',
+      short: 'address_length_short',
+      long: 'address_length_long',
+    },
   });
 };
 
@@ -207,185 +217,156 @@ const validateLocation = (location) => {
     address,
   } = location;
 
-  const addressError = validateAddress(address);
-  if (addressError) {
-    return addressError;
-  }
+  validateAddress(address);
 
-  const nameError = validateName(name, {
-    exists: true,
+  validateName(name, {
+    required: true,
     config: config.location.name,
   });
-  if (nameError) {
-    return nameError;
-  }
 
-  const lonError = validateLon(lon);
-  if (lonError) {
-    return lonError;
-  }
+  validateLon(lon, { required: false });
+  validateLat(lat, { required: false });
 
-  const latError = validateLat(lat);
-  if (latError) {
-    return latError;
-  }
-
-  const emailError = validateEmail(email, { exists: false });
-  if (emailError) {
-    return emailError;
-  }
-
-  const phoneError = validatePhone(phone, { exists: false });
-  if (phoneError) {
-    return phoneError;
-  }
+  validateEmail(email, { required: false });
+  validatePhone(phone, { required: false });
 };
 
-const validateLocations = (locations) => {
+const validateLocations = (locations, opts = {}) => {
+  const {
+    required = true,
+  } = opts;
+
   if (!locations) {
-    return errors.common_object_missing;
+    affirm(!required, 'object_missing');
+    return;
   }
 
-  let isAnyMain = false;
-  for (let i = 0; i < locations.length; ++i) {
-    const location = locations[i];
-
+  locations.reduce((isAnyMain, location, i) => {
     if (location.isMain) {
-      if (isAnyMain) {
-        return [errors.common_location_multiple_main, { index: i }];
-      }
+      affirm(!isAnyMain, {
+        error: 'location_multiple_main',
+        details: { index: i },
+      });
 
-      isAnyMain = true;
+      return true;
     }
 
-    const locationError = validateLocation(location);
-    if (locationError) {
-      return [locationError, { index: i }];
-    }
-  }
+    return isAnyMain;
+  }, false);
+
+  affirmMany(validateLocation, locations);
 };
 const validatePagination = (offset = 0, amount, paginationConfig) => {
   const {
-    maxAmount,
+    items: {
+      maxAmount,
+    },
   } = paginationConfig;
 
-  if (typeof offset !== 'number' || !isInt(offset)) {
-    return errors.common_offset_invalid;
+  affirm(typeof offset === 'number' && isInt(offset), 'offset_invalid');
+
+  if (amount === undefined) {
+    return;
   }
 
-  if (amount !== undefined) {
-    if (typeof amount !== 'number' || !isInt(amount)) {
-      return errors.common_amount_invalid;
-    }
-  }
-
-  if (amount >= maxAmount) {
-    return errors.common_amount_invalid;
-  }
+  affirm(
+    typeof amount === 'number'
+      && isInt(amount)
+      && amount < maxAmount,
+    'amount_invalid',
+  );
 };
 
 const validateEid = (eid, type, opts = {}) => {
   const {
-    exists = true,
+    required = true,
     types,
     confs,
   } = opts;
 
   if (!eid) {
-    return exists
-      ? errors.common_eid_missing
-      : false;
+    affirm(!required, 'eid_missing');
+    return;
   }
 
   const eids = confs.map(({ eid }) => eid);
   const sizes = eids.map(({ size }) => size);
 
-  let err = false;
-
-  const localLenValidate = size => check.len(eid, {
-    min: size,
-    max: size,
-    minError: errors.common_eid_length_short,
-    maxError: errors.common_eid_length_long,
-  });
-
   const typeIndex = types.indexOf(type);
 
-  if (typeIndex === -1) {
-    console.error(`unrecognized type ${type} among ${types}`);
-    return errors.unexpected;
-  }
+  affirmInternal(typeIndex > -1, `unrecognized type ${type} among ${types}`);
 
   // sum all sizes up to (typeIndex) and including (+ 1) index
   const size = sizes
     .slice(0, typeIndex + 1)
     .reduce((a, b) => a + b);
 
-  const lenErr = localLenValidate(size);
+  validateLen(eid, {
+    min: size,
+    max: size,
+    errors: {
+      min: 'eid_length_short',
+      max: 'eid_length_long',
+    },
+  });
 
-  if (lenErr) {
-    return lenErr;
-  }
-
-  const localValidate = (offset, conf) =>
+  const localValidate = (offset, conf) => {
     validateString(eid.substr(offset, conf.size), {
       config: {
         minSize: conf.size,
         maxSize: conf.size,
         charset: conf.charset,
       },
-      exists,
-      missingErr: errors.common_eid_portion_missing,
-      charsetErr: errors.common_eid_portion_out_of_charset,
-      shortErr: errors.common_eid_portion_length_short,
-      longErr: errors.common_eid_portion_length_long,
+      required,
+      errors: {
+        missing: 'eid_portion_missing',
+        charset: 'eid_portion_out_of_charset',
+        short: 'eid_portion_length_short',
+        long: 'eid_portion_length_long',
+      },
     });
+  };
   switch (type) {
     // intentional cascade
     case types[2]:
-      err = localValidate(sizes[0] + sizes[1], eids[2]);
-      if (err) {
-        return err;
-      }
+      localValidate(sizes[0] + sizes[1], eids[2]);
     case types[1]:
-      err = localValidate(sizes[0], eids[1]);
-      if (err) {
-        return err;
-      }
+      localValidate(sizes[0], eids[1]);
     case types[0]:
-      err = localValidate(0, eids[0]);
-      if (err) {
-        return err;
-      }
+      localValidate(0, eids[0]);
       break;
   }
 };
-const validateBuyerEid = (eid, type, opts = {}) => validateEid(eid, type, {
-  confs: [
-    config.receiver,
-    config.receiver.location,
-    config.order,
-  ],
-  types: [
-    'receiver',
-    'location',
-    'order',
-  ],
-  ...opts,
-});
-const validateSellerEid = (eid, type, opts = {}) => validateEid(eid, type, {
-  confs: [
-    config.provider,
-    config.sale,
-    config.saleInstance,
-  ],
-  types: [
-    'provider',
-    'sale',
-    'instance',
-  ],
-  ...opts,
-});
+const validateBuyerEid = (eid, type, opts = {}) => {
+  validateEid(eid, type, {
+    confs: [
+      config.receiver,
+      config.receiver.location,
+      config.order,
+    ],
+    types: [
+      'receiver',
+      'location',
+      'order',
+    ],
+    ...opts,
+  });
+};
+const validateSellerEid = (eid, type, opts = {}) => {
+  validateEid(eid, type, {
+    confs: [
+      config.provider,
+      config.sale,
+      config.saleInstance,
+    ],
+    types: [
+      'provider',
+      'sale',
+      'instance',
+    ],
+    ...opts,
+  });
+};
 
 const validateSearch = (search, opts = {}) => {
   const {
@@ -394,172 +375,86 @@ const validateSearch = (search, opts = {}) => {
     term,
   } = search;
 
-  const paginationError = validatePagination(offset, amount, opts.paginationConfig);
-  if (paginationError) {
-    return paginationError;
-  }
-
-  const termError = validateString(term, opts.termConfig);
-  if (termError) {
-    return termError;
-  }
+  validatePagination(offset, amount, opts.paginationConfig);
+  validateString(term, opts.termConfig);
 };
 
 module.exports = {
-  validatorFns: {
-    validateString,
-    validateName,
-    validateUsername,
-    validatePassword,
-    validateEmail,
-    validatePhone,
-    validateLon,
-    validateLat,
-    validateAddress,
-    validateLocation,
-    validatePagination,
-    validateEid,
-    validateBuyerEid,
-    validateSellerEid,
-    validateSearch,
-  },
+  validateLen,
+  validateCharset,
+  validateString,
+
+  validateName,
+  validateUsername,
+  validatePassword,
+  validateEmail,
+  validatePhone,
+
+  validateLon,
+  validateLat,
+  validateAddress,
+  validateLocation,
+
+  validatePagination,
+
+  validateEid,
+  validateBuyerEid,
+  validateSellerEid,
+
+  validateSearch,
+
   generators: {
-    pagination: paginationConfig => function (req, res, next) {
+    pagination: paginationConfig => function ({ input }) {
       const {
         offset,
         amount,
-      } = req.body;
+      } = input;
 
-      const paginationError =
-        validatePagination(offset, amount, paginationConfig);
-
-      if (paginationError) {
-        sendError(res, {
-          error: paginationError,
-          details: paginationConfig,
-        });
-        return;
-      }
-
-      next();
+      validatePagination(offset, amount, paginationConfig);
     },
   },
   group: {
     user: {
-      loggedIn(req, res, next) {
-        const session = prefixProxy(this.config.sessionPrefix, req.session);
-        const modelErrors = prefixProxy(`${this.config.errorPrefix}_`, errors);
+      async loggedIn({ session, self }) {
+        affirm(session.authed, 'login_no');
 
-        if (!session.authed) {
-          sendError(res, {
-            error: errors.common_login_no,
-          });
-          return;
-        }
+        const now = Date.now();
+        affirm(now < session.authedEndMS, 'auth_expired');
 
-        if (session.authed && session.authedEndMS < Date.now()) {
-          sendError(res, {
-            error: errors.common_auth_expired,
-            details: {
-              config: config.common.auth,
-            },
-          });
-          return;
-        }
+        const user = await new this.Model({ id: session.user.id })
+          .fetch();
 
-        new models[this.config.modelName]({ id: session.mid })
-          .fetch()
-          .then((model) => {
-            if (!model) {
-              sendError(res, {
-                error: modelErrors.not_exists,
-              });
-              return;
-            }
+        affirm(user, this.error('not_required'));
 
-            req[this.config.sessionPrefix] = model;
-            next();
-          })
-          .catch(genDbError(res));
+        self.user = user;
       },
-      notLoggedIn(req, res, next) {
-        const session = prefixProxy(this.config.sessionPrefix, req.session);
+      notLoggedIn({ session }) {
+        affirm(!session.authed, 'login_yes');
+      },
+      verified({ session, user }) {
+        affirm(session.authed, 'login_no');
 
-        if (session.authed) {
-          sendError(res, {
-            error: errors.common_login_yes,
-          });
-          return;
-        }
-
-        next();
+        affirm(user.isVerified(), 'not_verified');
       },
-      verified(req, res, next) {
-        const model = req[this.config.sessionPrefix];
-        if (model && model.attributes.verifiedBy !== null) {
-          next();
-          return;
-        }
-
-        sendError(res, {
-          error: errors.common_not_verified,
-        });
+      name({ input }) {
+        validateName(input.name);
       },
-      name(req, res, next) {
-        handleRequestValidation(req, res, next, [{
-          fn: validateName,
-          property: 'name',
-          details: {
-            config: config.common.name,
-          },
-        }]);
+      username({ input }) {
+        validateUsername(input.username);
       },
-      username(req, res, next) {
-        handleRequestValidation(req, res, next, [{
-          fn: validateUsername,
-          property: 'username',
-          details: {
-            config: config.common.username,
-          },
-        }]);
+      password({ input }) {
+        validatePassword(input.password);
       },
-      password(req, res, next) {
-        handleRequestValidation(req, res, next, [{
-          fn: validatePassword,
-          property: 'password',
-          details: {
-            config: config.common.password,
-          },
-        }]);
+      email({ input }) {
+        validateEmail(input.email);
       },
-      email(req, res, next) {
-        handleRequestValidation(req, res, next, [{
-          fn: validateEmail,
-          property: 'email',
-          details: {
-            config: config.common.email,
-          },
-        }]);
-      },
-      phone(req, res, next) {
-        handleRequestValidation(req, res, next, [{
-          fn: validatePhone,
-          property: 'phone',
-          details: {
-            config: config.common.phone,
-          },
-        }]);
+      phone({ input }) {
+        validatePhone(input.phone);
       },
     },
     locationOwner: {
-      locations(req, res, next) {
-        handleRequestValidation(req, res, next, [{
-          fn: validateLocations,
-          property: 'locations',
-          details: {
-            config: config.location,
-          },
-        }]);
+      locations({ input }) {
+        validateLocations(input.locations);
       },
     },
   },

@@ -1,3 +1,5 @@
+const fs = require('fs');
+
 const config = require('./config');
 
 const flattenOne = array =>
@@ -57,7 +59,7 @@ const groupByProperties = (arr, ...properties) => {
 const genGroupByProperties = (...properties) => arr => groupByProperties(arr, ...properties);
 
 const remap = (original, transformed, identity) =>
-  original.map(item => 
+  original.map(item =>
     transformed.find(element =>
       identity(item, element)));
 
@@ -138,6 +140,11 @@ const dissectBuyerEid = (eid) => {
 const isInt = x => Math.floor(x) === x;
 const isInRange = (x, min, max) => !(x < min || x > max);
 
+const getModules = path =>
+  fs.readdirSync(path)
+    .filter(module =>
+      isUpperCase(module[0]) && !module.startsWith('.'));
+
 module.exports = {
   flattenOne,
   flatten,
@@ -164,4 +171,6 @@ module.exports = {
 
   isInt,
   isInRange,
+
+  getModules,
 };

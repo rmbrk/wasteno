@@ -13,22 +13,16 @@ const {
 } = require('./../../db/models');
 
 const {
-  errors,
   config,
-  sendError,
-  ok,
-  genOk,
-  dbError,
-  genDbError,
+  affirm,
 } = require('./../helper.js');
 
 const common = require('./common.js');
 
 const controllerConfig = {
-  model: Receiver,
-  locationModel: ReceiverLocation,
+  Model: Receiver,
+  LocationModel: ReceiverLocation,
   additionalUserProperties: ['eid'],
-  sessionPrefix: 'rec',
   errorPrefix: 'receiver',
   dataName: 'receiver',
 };
@@ -37,19 +31,14 @@ module.exports = {
   ...common.group.user,
   ...common.group.locationOwner,
 
-  async addOrder(req, res) {
+  async addOrder({ input, user }) {
     // already validated
     const {
       items,
       eid,
-    } = req.body;
+    } = input;
 
-    if (await req.rec.hasMaxOrders()) {
-      sendError(res, {
-        error: errors.receiver_too_many_orders,
-        details: config.receiver,
-      });
-    }
+    affirm(!await user.hasMaxOrders(), 'receiver_too_many_orders');
 
     const saleModels = await Sale.fetchByEids(items.map(item => item.saleEid));
 
@@ -64,14 +53,9 @@ module.exports = {
 
     const locationEid = dissectBuyerEid(eid).location;
 
-    const locationId = await req.rec.fetchLocationIdByEid(locationEid);
+    const locationId = await user.fetchLocationIdByEid(locationEid);
 
-    if (!locationId) {
-      sendError(res, {
-        error: errors.location_eid_not_exists,
-      });
-      return;
-    }
+    affirm(locationId, 'location_eid_not_exists');
 
     const order = await new Order({
       priceAmount: totalPrice,
@@ -93,47 +77,37 @@ module.exports = {
       };
     }));
 
-    ok(res);
+    return {};
   },
-  async getOrder(req, res) {
+  async getOrder({ input }) {
     const {
       eid,
-    } = req.body;
+    } = input;
 
     const order = await new Order({ eid }).fetch();
 
-    if (!order) {
-      sendError(res, {
-        error: errors.order_eid_not_exists,
-      });
-      return;
-    }
+    affirm(order, 'order_eid_not_exists');
 
-    ok(res, { order });
+    return { order };
   },
-  async getOrders(req, res) {
-    const orders = await req.rec.fetchOrders();
+  async getOrders({ user }) {
+    const orders = await user.fetchOrders();
 
-    ok(res, { orders });
+    return { orders };
   },
 
-  async payOrder(req, res) {
+  async payOrder({ input, session }) {
     // TODO figure out how to actually get paid
     const {
       eid,
-    } = req.body;
+    } = input;
 
     const order = await new Order({ eid }).fetch();
 
-    if (!order) {
-      sendError(res, {
-        error: errors.order_eid_not_exists,
-      });
-      return;
-    }
+    affirm(order, 'order_eid_not_exists');
 
     await order.pay();
 
-    ok(res);
+    return {};
   }
 };

@@ -1,9 +1,6 @@
 const {
-  sendError,
-  ok,
-  genOk,
-  genDbError,
-  errors,
+  affirm,
+  affirmError,
   config,
 } = require('./../helper.js');
 
@@ -17,9 +14,14 @@ const models = require('./../../db/models');
 module.exports = {
   group: {
     user: {
-      create(req, res) {
+      async create({ input }) {
+        const {
+          username,
+        } = input;
+
         const additionalProperties =
           this.config.additionalUserProperties || [];
+
         const transferProperties = [
           'name',
           'email',
@@ -29,161 +31,115 @@ module.exports = {
           ...additionalProperties,
         ];
 
-        const { username } = req.body;
+        const usernameExists = await this.Model.exists({ username });
+        affirm(!usernameExists, 'common_username_exists');
 
-        new this.config.model({ username })
-          .fetch()
-          .then((model) => {
-            if (model) {
-              sendError(res, {
-                error: errors.common_username_exists,
-              });
-              return;
-            }
+        await new this.Model(pluck(
+          input,
+          transferProperties,
+        ))
+          .save();
 
-            return new this.config.model(pluck(
-              req.body,
-              transferProperties,
-            ))
-              .save()
-              .then(genOk(res));
-          })
-          .catch(genDbError(res));
+        return {};
       },
-      login(req, res) {
+      async login({ input, session }) {
         const {
           username,
           password,
-        } = req.body;
-
-        const session = prefixProxy(this.config.sessionPrefix, req.session);
+        } = input;
 
         const now = Date.now();
 
-        if (now < session.loginBanEndMS) {
-          return sendError(res, {
-            error: errors.common_login_before_ban_end,
-            details: config.common.login,
-          });
+        if (session.loginBanEndMS) {
+          affirm(now > session.loginBanEndMS, 'common_login_before_ban_end');
         }
 
-        new this.config.model({ username })
-          .checkLogin({ password })
-          .then((model) => {
-            if (!model || !model.passwordsMatched) {
-              if (!session.loginTries) {
-                session.loginTries = 0;
-              }
+        const user = await new this.Model({ username })
+          .checkLogin({ password });
 
-              if (!session.loginLastTry
-                  || now - session.loginLastTry > config.common.login.intervalMS) {
-                session.loginLastTry = Date.now();
-                session.loginTries = 0;
-              }
-
-              session.loginTries++;
-
-              if (session.loginTries >= config.common.login.tries) {
-                session.loginBanEndMS = now + config.common.login.intervalMS;
-              }
-
-              return sendError(res, {
-                error: errors.common_login_invalid,
-              });
-            }
-
-            session.authed = true;
-            session.mid = model.id;
+        if (!user || !user.passwordsMatched) {
+          if (!session.loginTries) {
             session.loginTries = 0;
-            session.authedEndMS = now + config.common.auth.intervalMS;
+          }
 
-            ok(res);
-          })
-          .catch(genDbError(res));
+          if (!session.loginLastTry
+              || now - session.loginLastTry > config.common.login.intervalMS) {
+            session.loginLastTry = Date.now();
+            session.loginTries = 0;
+          }
+
+          session.loginTries++;
+
+          if (session.loginTries >= config.common.login.tries) {
+            session.loginBanEndMS = now + config.common.login.intervalMS;
+          }
+
+          affirmError('common_login_invalid');
+        }
+
+        session.authed = true;
+        session.user = user;
+        session.loginTries = 0;
+        session.authedEndMS = now + config.common.auth.intervalMS;
+
+        return {};
       },
-      logout(req, res) {
-        const session = prefixProxy(this.config.sessionPrefix, req.session);
+      logout({ session }) {
         session.authed = false;
 
-        ok(res);
+        return {};
       },
-      delete(req, res) {
-        const session = prefixProxy(this.config.sessionPrefix, req.session);
+      async delete({ session, user }) {
+        await this.Model({ id: user.id })
+          .destroy({ require: false });
 
-        new this.config.model({ id: session.mid })
-          .destroy({ require: false })
-          .then(() => {
-            session.authed = false;
+        session.authed = false;
 
-            ok(res);
-          })
-          .catch(genDbError(res));
+        return {};
       },
-      getByUsername(req, res) {
-        const { username } = req.body;
+      async getByUsername({ input }) {
+        const { username } = input;
 
-        new this.config.model({ username })
-          .fetch()
-          .then((model) => {
-            ok(res, { [this.config.dataName]: model });
-          })
-          .catch(genDbError(res));
-      }
+        const model = await new this.Model({ username }).fetch();
+
+        return {
+          [this.config.dataName]: model,
+        };
+      },
     },
     locationOwner: {
-      getLocations(req, res) {
+      async getLocations({ input }) {
         const {
           username,
-        } = req.body;
+        } = input;
 
-        const modelErrors = prefixProxy(`${this.config.errorPrefix}_`, errors, {
-          isUpperCase: false,
-        });
+        const user = await new this.Model({ username })
+          .fetch({ withRelated: 'locations' });
 
-        new this.config.model({ username })
-          .fetch({ withRelated: ['locations'] })
-          .then((model) => {
-            if (!model) {
-              sendError(res, {
-                error: modelErrors.not_exists,
-              });
-              return;
-            }
+        affirm(user, this.error('not_exists'));
 
-            ok(res, {
-              locations: model.related('locations').models,
-            });
-          })
-          .catch(genDbError(res));
+        return {
+          locations: user.related('locations').models,
+        };
       },
-      addLocations(req, res) {
+      async addLocations({ input, user }) {
         const {
           locations,
-        } = req.body;
-
-        const session = prefixProxy(this.config.sessionPrefix, req.session);
-        const user = req[this.config.sessionPrefix];
+        } = input;
 
         const locNames = locations.map(loc => loc.name);
-        new this.config.locationModel({ parent: user.id })
-          .query(q => q.whereIn('name', locNames))
-          .fetch()
-          .then((loc) => {
-            if (loc) {
-              sendError(res, {
-                error: errors.common_location_name_exists,
-                details: {
-                  index: locNames.indexOf(loc.get('name')),
-                },
-              });
-              return;
-            }
 
-            return req[this.config.sessionPrefix]
-              .addLocations({ locations })
-              .then(genOk(res));
-          })
-          .catch(genDbError(res));
+        const childLocationWithNameExists =
+          await this.LocationModel.exists({
+            parent: user.id,
+            query: q => q.whereIn('name', locNames),
+          });
+
+        affirm(!childLocationWithNameExists, 'location_name_exists');
+
+        await user.addLocations({ locations });
+
+        return {};
       },
     },
   },

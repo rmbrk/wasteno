@@ -83,12 +83,12 @@ const genSaleSearch = () => {
 
   return {
     offset: 0, // Math.floor(Math.random() * 20),
-    amount: Math.floor(Math.random() * config.sale.pagination.items.maxAmount),
+    amount: getRandomItem(config.sale.pagination.items.maxAmount, 1),
 
     term: sale.name.split(' ')[1],
     maxPrice: Math.random() * 2000,
     maxExpiry: genMaxExpiry(),
-    minAmount: Math.floor(Math.random() * 10),
+    minAmount: getRandomItem(10),
     categories: sale.category,
   };
 };
@@ -96,13 +96,25 @@ const baseSaleSearch = genSaleSearch();
 const additionalSaleSearches = getTimes(20, genSaleSearch);
 const saleSearches = [baseSaleSearch, ...additionalSaleSearches];
 
+const genSaleInstanceLookup = (prov = baseProv, sale = baseSale) => ({
+  username: baseProv.username,
+
+  offset: 0,
+  amount: getRandomItem(config.saleInstance.pagination.items.maxAmount, 1),
+
+  saleEid: sale.eid,
+});
+const saleInstanceLookups = getTimes(20, () => genSaleInstanceLookup());
+const [baseSaleInstanceLookup, ...additionalSaleInstanceLookups] =
+  saleInstanceLookups;
+
 let orderIncrement = 0;
 const genOrder = (rec = baseRec, loc = getRandomItem(baseRecLocations)) => ({
   items: getTimes(5, () => getRandomItem(baseProvSales))
     .map(sale => ({
       saleEid: sale.eid,
       maxExpiry: genMaxExpiry(),
-      amount: Math.floor(Math.random() * 3),
+      amount: getRandomItem(3),
     })),
   eid: loc.eid +
       (++orderIncrement)
@@ -151,6 +163,10 @@ module.exports = {
   baseSaleSearch,
   additionalSaleSearches,
   saleSearches,
+
+  baseSaleInstanceLookup,
+  additionalSaleInstanceLookups,
+  saleInstanceLookups,
 
   baseOrder,
   additionalOrders,

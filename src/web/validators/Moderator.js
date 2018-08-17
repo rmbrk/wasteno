@@ -13,7 +13,7 @@ const {
 } = require('./../helper.js');
 
 const validationConfig = {
-  modelName: 'Moderator',
+  Model: Moderator,
   errorPrefix: 'moderator',
   sessionPrefix: 'mod',
 }

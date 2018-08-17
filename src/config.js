@@ -33,7 +33,7 @@ const eidCharsets = {
   receiver: uppercaseLetters,
   location: lowercaseLetters,
   order: digits,
-}
+};
 const commonName = {
   minSize: 4,
   maxSize: 30,
@@ -78,7 +78,7 @@ module.exports = {
       charset: alphanumExtendedSpecialCharset,
     },
     name: {
-      ...commonName, 
+      ...commonName,
     },
   },
   moderator: {
@@ -95,7 +95,7 @@ module.exports = {
         size: eidDeltaSizes.location,
         charset: eidCharsets.location,
       },
-    }
+    },
   },
   provider: {
     eid: {
@@ -111,8 +111,8 @@ module.exports = {
     pagination: {
       items: {
         maxAmount: 30,
-      }
-    }
+      },
+    },
   },
   sale: {
     name: {
@@ -145,12 +145,17 @@ module.exports = {
         minSize: 0,
         maxSize: eidDeltaSizes.provider + eidDeltaSizes.sale,
         charset: eidCharsets.provider + eidCharsets.sale,
-      }
-    }
+      },
+    },
   },
   saleInstance: {
     quantity: {
       max: 10000,
+    },
+    pagination: {
+      items: {
+        maxAmount: 30,
+      },
     },
     eid: {
       size: eidDeltaSizes.instance,
