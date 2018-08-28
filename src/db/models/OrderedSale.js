@@ -5,16 +5,25 @@ module.exports = {
     ...types.group.price,
     quantity: [['integer']],
     maxExpiry: types.date,
+
+    accepted: types.date,
+    estimatedPickup: types.date,
+    pickedUp: types.date,
+    estimatedArrival: types.date,
+    arrived: types.date,
   },
   references: {
     parent: 'Sale',
-    location: 'ProviderLocation',
+    sourceLocation: 'ProviderLocation',
+    destLocation: 'ReceiverLocation',
     order: 'Order',
+    transporter: 'Transporter',
   },
   associations: {
     belongsTo: {
       parent: 'Sale via parent',
-      location: 'ProviderLocation via location',
+      sourceLocation: 'ProviderLocation via sourceLocation',
+      destLocation: 'ReceiverLocation via destLocation',
       order: 'Order via order',
     },
   },

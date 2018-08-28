@@ -3,7 +3,7 @@ const { types, methods } = require('./common.js');
 const modelConfig = {
   models: {
     Model: 'Transporter',
-  }
+  },
 };
 module.exports = {
   config: modelConfig,
@@ -12,22 +12,17 @@ module.exports = {
     ...types.group.login,
     ...types.group.location,
     active: 'boolean',
-    isRegular: 'boolean',
-    isPackerOnly: 'boolean',
-    isPacker: 'boolean',
-    isReceiverSpecific: 'boolean',
-    isReceiverLocationSpecific: 'boolean',
   },
   references: {
     verifiedBy: 'Moderator',
   },
   associations: {
     belongsTo: {
-      verifier: 'Moderator via verifiedBy', 
+      verifier: 'Moderator via verifiedBy',
     },
     hasMany: {
-      orders: 'Order.transporter', 
-    }
+      orderedSales: 'OrderedSale.transporter',
+    },
   },
   methods: {
     ...methods.group.user,
@@ -35,5 +30,5 @@ module.exports = {
       this.constructor.__super__.initialize.apply(this, arguments);
       this.userInit();
     },
-  }
+  },
 };

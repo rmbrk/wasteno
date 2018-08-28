@@ -124,8 +124,10 @@ const allOrders = getTimes(20, () => genOrder());
 const [baseOrder, ...additionalOrders] = allOrders;
 
 const genConvenienceOrderSearch = () => ({
-  maxDist: 300 + 200 * Math.random(),
-  last: Math.random() < 0.5,
+  maxStartDist: 300 + getRandomItem(200),
+  maxEndDist: 300 + getRandomItem(200),
+  maxTravelDist: 300 + getRandomItem(200),
+  minGain: getRandomItem(20),
 });
 const allConvenienceOrderSearches =
   getTimes(20, () => genConvenienceOrderSearch());

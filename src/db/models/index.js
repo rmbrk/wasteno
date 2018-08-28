@@ -34,6 +34,9 @@ if (process.env.NODE_ENV === 'test' || true) {
 }
 // likeness score
 dbActions.push(() => knex.raw('CREATE EXTENSION pg_trgm'));
+// geolocation
+dbActions.push(() => knex.raw('CREATE EXTENSION cube'));
+dbActions.push(() => knex.raw('CREATE EXTENSION earthdistance'));
 
 const processedTableNames = [];
 const toProcessTableNames = ['Moderator'];

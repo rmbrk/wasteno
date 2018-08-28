@@ -10,16 +10,10 @@ module.exports = {
     // receiver
     paid: types.date,
 
-    // transporter
-    accepted: types.date,
-    pickedUp: types.date,
-    arrived: types.date,
-
     completed: 'boolean',
   },
   references: {
-    transporter: 'Transporter',
-    receiverLocation: 'ReceiverLocation',
+    sourceLocation: 'ReceiverLocation',
   },
   associations: {
     hasMany: {

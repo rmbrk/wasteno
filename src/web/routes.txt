@@ -236,7 +236,7 @@ post /transporter/order/by-convenience
 - transporter
   . loggedIn verified
   . convenienceOrderSearch
-  > getOrdersByConvenience
+  > getOrderedSalesByConvenience
 #
 # } ORDER {
 # }

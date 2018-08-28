@@ -59,7 +59,7 @@ module.exports = {
 
     const order = await new Order({
       priceAmount: totalPrice,
-      receiverLocation: locationId,
+      sourceLocation: locationId,
       eid,
     })
       .save();

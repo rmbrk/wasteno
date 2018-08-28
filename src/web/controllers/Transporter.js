@@ -1,5 +1,6 @@
 const {
   Transporter,
+  OrderedSale,
 } = require('./../../db/models');
 
 const {
@@ -31,7 +32,23 @@ module.exports = {
     return {}
   },
 
-  getOrdersByConvenience({ input, session }) {
-    return {}
+  async getOrderedSalesByConvenience({ input, user }) {
+    const {
+      maxStartDist,
+      maxEndDist,
+      maxTravelDist,
+      minGain,
+    } = input;
+
+    const orders = await new OrderedSale()
+      .query(q => {
+        if(maxStartDist) {
+          return q.whereRaw(``)
+        }
+      })
+
+    return {
+      orders,
+    }
   }
 }
